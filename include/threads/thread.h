@@ -1,6 +1,9 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
 
+#define FDT_PAGES 3
+#define MAX_FD_NUM FDT_PAGES *(1 << 9)
+
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
@@ -117,17 +120,18 @@ struct thread
 	struct intr_frame tf; /* Information for switching */
 	unsigned magic;		  /* Detects stack overflow. */
 
-	struct intr_frame parent_if; /* 정보스위칭 할때 쓰라는 것 */
+	struct intr_frame parent_if; /* context switching할 때 쓰는 것 */
 	struct file **fd_table;		 /* FDT '파일을 가르키는 포인터'를 가르키는 포인터*/
-	int fdidx;					/* fd index */
+	int fdidx;					 /* 쓰레드가 관리하는 여러 파일 중 FDT 파일에 대한 idx */
 
 	struct thread *parent;		 /* 부모 프로세스의 디스크립터 */
 	struct list_elem child_elem; /* 자식 리스트 element */
 	struct list childs;			 /* 자식 리스트 */
 	// bool is_mem_load;					/* 프로세스의 프로그램 메모리 적재 유무 */
 	// bool is_proc_off; 					/* 프로세스가 종료 유무 확인 */
-	struct semaphore exit_sema; /* exit 세마포어 */
 	struct semaphore fork_sema; /* fork 세마포어 */
+	struct semaphore wait_sema; /* exit 세마포어 */
+	struct semaphore free_sema; /* free 세마포어 */
 	int exit_status;			/* exit 호출 시 종료 status */
 };
 
