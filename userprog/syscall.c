@@ -52,6 +52,7 @@ struct lock filesys_lock;
 
 void
 syscall_init (void) {
+	lock_init(&filesys_lock);
 	write_msr(MSR_STAR, ((uint64_t)SEL_UCSEG - 0x10) << 48  |
 			((uint64_t)SEL_KCSEG) << 32);
 	write_msr(MSR_LSTAR, (uint64_t) syscall_entry);
@@ -61,7 +62,6 @@ syscall_init (void) {
 	 * mode stack. Therefore, we masked the FLAG_FL. */
 	write_msr(MSR_SYSCALL_MASK,
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
-	lock_init(&filesys_lock);
 }
 
 /* 주소 값이 유저 영역에서 사용하는 주소 값인지 확인 하는 함수
@@ -203,24 +203,36 @@ int
 add_file_to_fdt(struct file *file){
 	struct thread *cur = thread_current();
 	struct file **cur_fd_table = cur->fd_table;
-	for (int i = cur->fdidx; i < MAX_FD_NUM; i++){
-		if (cur_fd_table[i] == NULL){
-			cur_fd_table[i] = file;
-			cur->fdidx = i;
-			return cur->fdidx;
-		}
-	}
-	cur->fdidx = MAX_FD_NUM;
-	return -1;
+	while (cur->fdidx < MAX_FD_NUM && cur_fd_table[cur->fdidx]){
+        cur->fdidx++;
+    }
+
+    // error - fd table full
+    if (cur->fdidx >= MAX_FD_NUM)
+        return -1;
+
+    cur_fd_table[cur->fdidx] = file;
+    return cur->fdidx;
+	// for (int i = cur->fdidx; i < MAX_FD_NUM; i++){
+	// 	if (cur_fd_table[i] == NULL){
+	// 		cur_fd_table[i] = file;
+	// 		cur->fdidx = i;
+	// 		return cur->fdidx;
+	// 	}
+	// }
+	// cur->fdidx = MAX_FD_NUM;
+	// return -1;
 }
 
 int
 open (const char *file) {
 /* 성공 시 fd를 생성하고 반환, 실패 시 -1 반환 */
 	check_address(file);
+	lock_acquire(&filesys_lock);
 	struct file *open_file = filesys_open (file);
 	
 	if(open_file == NULL){
+		lock_release(&filesys_lock);
 		return -1;
 	}
 	
@@ -228,6 +240,7 @@ open (const char *file) {
 	if (fd == -1){ // fd table 가득 찼다면
 		file_close(open_file);
 	}
+	lock_release(&filesys_lock);
 	return fd;
 }
 
@@ -240,15 +253,15 @@ write (int fd, const void *buffer, unsigned size) {
 		return -1;
 	}
 
-	lock_acquire(&filesys_lock);
 	if (fd == 1) {	// stdout(표준 출력) - 모니터
 		putbuf(buffer, size);
-		lock_release(&filesys_lock);
+		// lock_release(&filesys_lock);
 		return size;
 	}else if(fd == 0){
-		lock_release(&filesys_lock);
+		// lock_release(&filesys_lock);
 		return -1;
 	}else{ 
+		lock_acquire(&filesys_lock);
 		int bytes_written = file_write(file, buffer, size);
 		lock_release(&filesys_lock);
 		return bytes_written;
@@ -350,9 +363,7 @@ seek (int fd, unsigned position) {
 	if(fd < 2){
 		return;
 	}
-	if(fd >= 2){
-		file_seek(file, position);
-	}
+	file_seek(file, position);
 }
 
 unsigned
