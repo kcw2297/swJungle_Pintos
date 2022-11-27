@@ -28,8 +28,6 @@ static void initd(void *f_name);
 static void __do_fork(void *);
 struct thread *get_child(int pid);
 
-struct lock file_lock;
-
 /* General process initializer for initd and other process. */
 static void
 process_init(void)
@@ -86,8 +84,9 @@ struct thread *get_child(int pid){
 	struct thread *cur = thread_current();
 	// 자식 리스트에서 pid에 맞는 list_elem 찾기
 	struct list_elem *child = list_begin(&cur->childs);
+	struct thread *target;
 	while (child != list_end(&cur->childs)){
-		struct thread *target = list_entry(child, struct thread, child_elem);
+		target = list_entry(child, struct thread, child_elem);
 		if (target->tid == pid){ /* 해당 pid가 존재하면 프로세스 디스크립터 반환 */
 			return target;
 		}
@@ -175,6 +174,7 @@ duplicate_pte(uint64_t *pte, void *va, void *aux)
 	if (!pml4_set_page(current->pml4, va, newpage, writable))
 	{
 		/* 6. TODO: if fail to insert page, do error handling. */
+		palloc_free_multiple(newpage, PGSIZE);  // 실패하면 프리?
 		return false;
 	}
 	return true;
@@ -232,8 +232,9 @@ __do_fork(void *aux){
 
 	current->fd_table[0] = parent->fd_table[0];
 	current->fd_table[1] = parent->fd_table[1];
+	struct file *f;
 	for (int i = 2; i < MAX_FD_NUM; i++){
-		struct file *f = parent->fd_table[i];
+		f = parent->fd_table[i];
 		if (f == NULL){
 			continue;
 		}
@@ -537,7 +538,6 @@ load(const char *file_name, struct intr_frame *if_)
 	char *argv[128]; // 커맨드 라인 길이 제한 128
 	char *token, *save_ptr;
 	int argc = 0;
-	lock_init(&file_lock);
 
 	token = strtok_r(file_name, " ", &save_ptr);
 	argv[argc] = token;

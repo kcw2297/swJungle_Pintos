@@ -2,7 +2,7 @@
 #define THREADS_THREAD_H
 
 #define FDT_PAGES 3
-#define MAX_FD_NUM FDT_PAGES *(1 << 9)
+#define MAX_FD_NUM FDT_PAGES*(1 << 9)
 
 #include <debug.h>
 #include <list.h>
@@ -96,7 +96,7 @@ struct thread
 	enum thread_status status; /* Thread state. */
 	char name[16];			   /* Name (for debugging purposes). */
 	uint8_t *stack;			   /* 악깡버 Saved stack pointer.*/
-	struct list_elem allelem;  /* 악깡버 List element for all threads list. */
+	// struct list_elem allelem;  /* 악깡버 List element for all threads list. */
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem; /* List element. */
 	int64_t wakeup_tick;   /* 해당 스레드가 깨어날 시간 */
@@ -118,7 +118,6 @@ struct thread
 
 	/* Owned by thread.c. */
 	struct intr_frame tf; /* Information for switching */
-	unsigned magic;		  /* Detects stack overflow. */
 
 	struct intr_frame parent_if; /* context switching할 때 쓰는 것 */
 	struct file **fd_table;		 /* FDT '파일을 가르키는 포인터'를 가르키는 포인터*/
@@ -126,7 +125,7 @@ struct thread
 
 	struct file *run_file;
 	
-	struct thread *parent;		 /* 부모 프로세스의 디스크립터 */
+	// struct thread *parent;		 /* 부모 프로세스의 디스크립터 */
 	struct list_elem child_elem; /* 자식 리스트 element */
 	struct list childs;			 /* 자식 리스트 */
 	// bool is_mem_load;					/* 프로세스의 프로그램 메모리 적재 유무 */
@@ -135,6 +134,7 @@ struct thread
 	struct semaphore wait_sema; /* exit 세마포어 */
 	struct semaphore free_sema; /* free 세마포어 */
 	int exit_status;			/* exit 호출 시 종료 status */
+	unsigned magic;		  /* Detects stack overflow. */
 };
 
 /* If false (default), use round-robin scheduler.

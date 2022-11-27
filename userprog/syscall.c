@@ -246,9 +246,8 @@ open (const char *file) {
 
 int
 write (int fd, const void *buffer, unsigned size) {
-	struct file *file = fd_to_file(fd);
 	check_address(buffer);
-	check_address(buffer+size-1); // -1은 null 전까지만 유효하면 되서 
+	struct file *file = fd_to_file(fd);
 	if(file == NULL){
 		return -1;
 	}
@@ -278,9 +277,8 @@ fork (const char *thread_name, struct intr_frame *f){
 struct file *
 fd_to_file(int fd){
 	struct thread *cur = thread_current();
-	struct file **cur_fd_table = cur->fd_table;
 	if(0 <= fd && fd < MAX_FD_NUM){
-		return cur_fd_table[fd];
+		return cur->fd_table[fd];
 	}else{
 		return NULL;
 	}
@@ -289,11 +287,10 @@ fd_to_file(int fd){
 void
 remove_fd(int fd){
 	struct thread *cur = thread_current();
-	struct file **cur_fd_table = cur->fd_table;
 	if(fd< 0 || fd > MAX_FD_NUM){
 		return;
 	}
-	cur_fd_table[fd] = NULL;
+	cur->fd_table[fd] = NULL;
 }
 
 void
@@ -319,11 +316,14 @@ filesize (int fd) {
 
 int
 read (int fd, void *buffer, unsigned size) {
+	if(fd < 0 || fd > MAX_FD_NUM){
+		return -1;
+	}
 	struct file *file = fd_to_file(fd);
 	// 버퍼의 처음 시작~ 끝 주소 check
 	check_address(buffer);
 	check_address(buffer+size-1); // -1은 null 전까지만 유효하면 되서 
-	char *buf = buffer;
+	// char *buf = buffer;
 	int read_size;
 
 	if(file == NULL){
@@ -335,8 +335,8 @@ read (int fd, void *buffer, unsigned size) {
 		for(read_size =0; read_size < size; read_size ++){
 			keyboard = input_getc();
 			// *buf ++ = keyboard;
-			buf = keyboard;
-			*buf ++;
+			buffer = keyboard;
+			*buffer ++;
 			if(keyboard == '\0'){ // null 전까지 저장
 				break;
 			}
@@ -360,7 +360,7 @@ seek (int fd, unsigned position) {
 	// if(file == NULL){
 	// 	return -1;
 	// }
-	if(fd < 2){
+	if(fd < 2 || fd > MAX_FD_NUM){
 		return;
 	}
 	file_seek(file, position);
@@ -373,7 +373,7 @@ tell (int fd) {
 	// if(file == NULL){
 	// 	return -1;
 	// }
-	if(fd < 2){
+	if(fd < 2 || fd > MAX_FD_NUM){
 		return;
 	}
 	return file_tell(file);

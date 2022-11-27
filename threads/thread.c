@@ -210,7 +210,7 @@ thread_create (const char *name, int priority,
 	t->tf.eflags = FLAG_IF;
 
 	struct thread *cur = thread_current();
-	t->parent = cur; 	/* 부모 프로세스 저장 */
+	// t->parent = cur; 	/* 부모 프로세스 저장 */
 	t->fd_table = palloc_get_multiple(0, FDT_PAGES);
 	int stdin = 0; 
 	int stdout = 1;
@@ -219,7 +219,6 @@ thread_create (const char *name, int priority,
 	t->fdidx = 2;
 	// t->is_mem_load = false;	/* 프로그램이 로드되지 않음 */
 	// t->is_proc_off = false;	/* 프로세스가 종료되지 않음 */
-	t->child_elem;
 	list_push_back (&cur->childs, &t->child_elem);	/* 부모의 자식 리스트에 추가 */
 
 	/* 실행 대기열에 추가 */
