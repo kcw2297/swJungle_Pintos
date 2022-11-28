@@ -209,7 +209,7 @@ thread_create (const char *name, int priority,
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
 
-	t->fd_table = palloc_get_multiple(0, FDT_PAGES);
+	t->fd_table = palloc_get_multiple(PAL_ZERO, FDT_PAGES);
 	int stdin = 0; 
 	int stdout = 1;
 	t->fd_table[0] = stdin;

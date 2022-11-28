@@ -231,9 +231,11 @@ int
 open (const char *file) {
 /* 성공 시 fd를 생성하고 반환, 실패 시 -1 반환 */
 	check_address(file);
+	lock_acquire(&filesys_lock);
 	struct file *open_file = filesys_open (file);
 	
 	if(open_file == NULL){
+		lock_release(&filesys_lock);
 		return -1;
 	}
 	
@@ -241,6 +243,7 @@ open (const char *file) {
 	if (fd == -1){ // fd table 가득 찼다면
 		file_close(open_file);
 	}
+	lock_release(&filesys_lock);
 	return fd;
 }
 
@@ -253,16 +256,16 @@ write (int fd, const void *buffer, unsigned size) {
 		return 0;
 	}
 
-	lock_acquire(&filesys_lock);
 	if (fd == 1) {	// stdout(표준 출력) - 모니터
 		putbuf(buffer, size);
 		write_result = size;
 	}else if(fd == 0){ // stdin
 		write_result = 0;
 	}else{ 
+		lock_acquire(&filesys_lock);
 		write_result = file_write(file, buffer, size);
+		lock_release(&filesys_lock);
 	}
-	lock_release(&filesys_lock);
 	return write_result;
 }
 
