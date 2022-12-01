@@ -60,7 +60,9 @@ err:
 	return false;
 }
 
-/* Find VA from spt and return page. On error, return NULL. */
+/* Find VA from spt and return page. On error, return NULL.
+	Returns the page containing the given virtual address, or a null pointer if no such page exists. 
+    page_lookup */
 struct page *
 spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	struct page *page = NULL;

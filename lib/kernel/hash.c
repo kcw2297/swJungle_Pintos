@@ -8,6 +8,7 @@
 #include "hash.h"
 #include "../debug.h"
 #include "threads/malloc.h"
+#include "vm/vm.c"
 
 #define list_elem_to_hash_elem(LIST_ELEM)                       \
 	list_entry(LIST_ELEM, struct hash_elem, list_elem)
@@ -20,7 +21,9 @@ static void remove_elem (struct hash *, struct hash_elem *);
 static void rehash (struct hash *);
 
 /* Initializes hash table H to compute hash values using HASH and
-   compare hash elements using LESS, given auxiliary data AUX. */
+   compare hash elements using LESS, given auxiliary data AUX.
+   주어진 보조 데이터 AUX에서 해시를 사용하여 해시 값을 계산하고 
+   LESS를 사용하여 해시 요소를 비교하기 위해 해시 테이블 H를 초기화합니다.*/
 bool
 hash_init (struct hash *h,
 		hash_hash_func *hash, hash_less_func *less, void *aux) {
@@ -46,7 +49,13 @@ hash_init (struct hash *h,
    table H while hash_clear() is running, using any of the
    functions hash_clear(), hash_destroy(), hash_insert(),
    hash_replace(), or hash_delete(), yields undefined behavior,
-   whether done in DESTRUCTOR or elsewhere. */
+   whether done in DESTRUCTOR or elsewhere.
++   DESTURCTOR가 Null이 아닌 경우 해시의 각 요소에 대해 호출됩니다.
++   DESTURCTOR는 적절한 경우 해시 요소에 의해 사용되는 메모리를 할당 해제할 수 있다. 
++   그러나 hash_clear()가 실행되는 동안 hash_clear(), hash_destroy(), 
++   hash_insert(), hash_replace(), hash_delete() 함수 중 하나를 사용하여 
++   hash_clear() 테이블 H를 수정하면 DESTUCTOR에서 수행하든,
++   다른 곳에서 수행하든 정의되지 않은 동작이 생성됩니다. */
 void
 hash_clear (struct hash *h, hash_action_func *destructor) {
 	size_t i;
@@ -76,7 +85,14 @@ hash_clear (struct hash *h, hash_action_func *destructor) {
    any of the functions hash_clear(), hash_destroy(),
    hash_insert(), hash_replace(), or hash_delete(), yields
    undefined behavior, whether done in DESTRUCTOR or
-   elsewhere. */
+   elsewhere.
++   DESTURCTOR가 Null이 아닌 경우 해시의 각 요소에 대해 먼저 호출됩니다. 
++   DESTURCTOR는 적절한 경우 해시 요소에 의해 사용되는 메모리를 할당 해제할 수 있다. 
++   그러나 hash_clear()가 실행되는 동안 hash_clear(), hash_destroy(), 
++   hash_insert(), hash_replace() 또는 hash_delete() 함수 중 하나를 사용하여 
++   hash_clear() 테이블 H를 수정하면 DESTUCTOR에서 수행되었는지 여부에 
++   관계없이 정의되지 않은 동작이 생성됩니다.
+    */
 void
 hash_destroy (struct hash *h, hash_action_func *destructor) {
 	if (destructor != NULL)

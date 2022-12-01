@@ -260,7 +260,9 @@ error:
 }
 
 /* Switch the current execution context to the f_name.
- * Returns -1 on fail. */
+ * Returns -1 on fail. 
+ * start_process
+ */
 int process_exec(void *f_name)
 {
 	char *file_name = f_name;
@@ -268,7 +270,9 @@ int process_exec(void *f_name)
 
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
-	 * it stores the execution information to the member. */
+	 * it stores the execution information to the member.
+	 * 우리는 스레드 구조에서 intr_frame을 사용할 수 없습니다.
+     * 이는 현재 스레드가 다시 rescheduled되면 실행 정보를 멤버에게 저장하기 때문입니다. */
 	struct intr_frame _if;
 	_if.ds = _if.es = _if.ss = SEL_UDSEG;
 	_if.cs = SEL_UCSEG;
