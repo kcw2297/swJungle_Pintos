@@ -9,8 +9,8 @@
 #include <stdint.h>
 #include "threads/interrupt.h"
 #include "threads/synch.h"
-#include "kernel/hash.h"
 #ifdef VM
+#include "kernel/hash.h"
 #include "vm/vm.h"
 #endif
 
