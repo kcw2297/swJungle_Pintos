@@ -3,6 +3,7 @@
 #include "threads/malloc.h"
 #include "vm/vm.h"
 #include "vm/inspect.h"
+#include "lib/kernel/hash.h"
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -65,20 +66,31 @@ err:
     page_lookup */
 struct page *
 spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
-	struct page *page = NULL;
+	// struct page *page = NULL;
 	/* TODO: Fill this function. */
 
-	return page;
+	struct page *page = (struct page*)malloc(sizeof(struct page));
+  	struct hash_elem *e;
+
+	page->va = pg_round_down(va);
+	e = hash_find (&spt->hash_tb, &page->h_elem);
+  
+	free(page);
+
+  	return e != NULL ? hash_entry (e, struct page, hash_elem) : NULL;
 }
 
 /* Insert PAGE into spt with validation. */
 bool
 spt_insert_page (struct supplemental_page_table *spt UNUSED,
 		struct page *page UNUSED) {
-	int succ = false;
+	// int succ = false;
 	/* TODO: Fill this function. */
 
-	return succ;
+	if (hash_insert(&spt->hash_tb, &page->h_elem) != NULL)
+		return false;
+
+	return true;
 }
 
 void
@@ -173,9 +185,27 @@ vm_do_claim_page (struct page *page) {
 	return swap_in (page, frame->kva);
 }
 
+
+/* Initializes hash table H to compute hash values using HASH and
+   compare hash elements using LESS, given auxiliary data AUX.
+   주어진 보조 데이터 AUX에서 해시를 사용하여 해시 값을 계산하고 
+   LESS를 사용하여 해시 요소를 비교하기 위해 해시 테이블 H를 초기화합니다.*/
+// bool
+// hash_init (struct hash *h,
+// 		hash_hash_func *hash, hash_less_func *less, void *aux)
+
 /* Initialize new supplemental page table */
 void
 supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
+ 
+	/*
+	Initializes the supplemental page table. 
+	You may choose the data structure to use for the supplemental page table. -> hash 선택!
+	The function is called when a new process starts (in initd of userprog/process.c) 
+	and when a process is being forked (in __do_fork of userprog/process.c).
+	*/
+
+	hash_init (&spt->hash_tb, page_hash, page_less, NULL);
 }
 
 /* Copy supplemental page table from src to dst */
@@ -189,4 +219,23 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+}
+
+// ##### 1
+
+/* Returns a hash value for page p. */
+unsigned
+page_hash (const struct hash_elem *p_, void *aux UNUSED) {
+  const struct page *p = hash_entry (p_, struct page, hash_elem);
+  return hash_bytes (&p->va, sizeof p->va);
+}
+
+/* Returns true if page a precedes page b. */
+bool
+page_less (const struct hash_elem *a_,
+           const struct hash_elem *b_, void *aux UNUSED) {
+  const struct page *a = hash_entry (a_, struct page, hash_elem);
+  const struct page *b = hash_entry (b_, struct page, hash_elem);
+
+  return a->va < b->va;
 }
