@@ -140,6 +140,7 @@ hash_find (struct hash *h, struct hash_elem *e) {
 	return find_elem (h, find_bucket (h, e), e);
 }
 
+
 /* Finds, removes, and returns an element equal to E in hash
    table H.  Returns a null pointer if no equal element existed
    in the table.
@@ -295,9 +296,25 @@ hash_int (int i) {
 /* Returns the bucket in H that E belongs in. */
 static struct list *
 find_bucket (struct hash *h, struct hash_elem *e) {
-	size_t bucket_idx = h->hash (e, h->aux) & (h->bucket_cnt - 1);
+	size_t bucket_idx = h->hash(e, h->aux) & (h->bucket_cnt - 1); 
 	return &h->buckets[bucket_idx];
 }
+
+/*
+	page->va = pg_round_down(va);
+
+	struct hash_elem *
+	hash_find (struct hash *h, struct hash_elem *e) {
+		return find_elem (h, find_bucket (h, e), e);
+	}
+
+	unsigned
+	page_hash (const struct hash_elem *p_, void *aux UNUSED) {
+		const struct page *p = hash_entry (p_, struct page, h_elem);
+		return hash_bytes (&p->va, sizeof p->va);
+	}
+*/
+
 
 /* Searches BUCKET in H for a hash element equal to E.  Returns
    it if found or a null pointer otherwise. */

@@ -5,6 +5,7 @@
 #include "vm/inspect.h"
 #include "lib/kernel/hash.h"
 #include "threads/vaddr.h"
+#include "threads/palloc.h"
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -119,19 +120,6 @@ vm_evict_frame (void) {
 	return NULL;
 }
 
-/* palloc() and get frame. If there is no available page, evict the page
- * and return it. This always return valid address. That is, if the user pool
- * memory is full, this function evicts the frame to get the available memory
- * space.*/
-static struct frame *
-vm_get_frame (void) {
-	struct frame *frame = NULL;
-	/* TODO: Fill this function. */
-
-	ASSERT (frame != NULL);
-	ASSERT (frame->page == NULL);
-	return frame;
-}
 
 /* Growing the stack. */
 static void
@@ -163,12 +151,15 @@ vm_dealloc_page (struct page *page) {
 	free (page);
 }
 
+
+
 /* Claim the page that allocate on VA. */
 bool
 vm_claim_page (void *va UNUSED) {
 	struct page *page = NULL;
+	struct thread* cur = thread_current();
 	/* TODO: Fill this function */
-
+	page = spt_find_page(cur->spt,va);
 	return vm_do_claim_page (page);
 }
 
@@ -176,16 +167,32 @@ vm_claim_page (void *va UNUSED) {
 static bool
 vm_do_claim_page (struct page *page) {
 	struct frame *frame = vm_get_frame ();
-
+	struct thread* cur = thread_current();
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
-
+	// 페이지 테이블 entry에 페이지 가상 주소와 프레임 물리주소를 매핑해라
+	pml4_set_page(cur->pml4, page, frame, true); // 수정 필요
 	return swap_in (page, frame->kva);
 }
 
+/* palloc() and get frame. If there is no available page, evict the page
+ * and return it. This always return valid address. That is, if the user pool
+ * memory is full, this function evicts the frame to get the available memory
+ * space.*/
+static struct frame *
+vm_get_frame (void) {
+	struct frame *frame = (struct frame*)malloc(sizeof(struct frame));
+
+	// ToDo 1: 프레임 할당
+	frame->page = (struct page*)palloc_get_page(PAL_USER);
+
+	ASSERT (frame != NULL);
+	ASSERT (frame->page == NULL);
+	return frame;
+}
 
 /* Initializes hash table H to compute hash values using HASH and
    compare hash elements using LESS, given auxiliary data AUX.
@@ -198,14 +205,6 @@ vm_do_claim_page (struct page *page) {
 /* Initialize new supplemental page table */
 void
 supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
- 
-	/*
-	Initializes the supplemental page table. 
-	You may choose the data structure to use for the supplemental page table. -> hash 선택!
-	The function is called when a new process starts (in initd of userprog/process.c) 
-	and when a process is being forked (in __do_fork of userprog/process.c).
-	*/
-
 	hash_init (&spt->hash_tb, page_hash, page_less, NULL);
 }
 
@@ -240,3 +239,7 @@ page_less (const struct hash_elem *a_,
 
   return a->va < b->va;
 }
+
+// bool page_insert();
+// bool page_delete();
+

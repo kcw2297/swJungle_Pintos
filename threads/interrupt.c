@@ -222,6 +222,18 @@ register_handler (uint8_t vec_no, int dpl, enum intr_level level,
 	intr_handlers[vec_no] = handler;
 	intr_names[vec_no] = name;
 }
+/*
+
+	static void
+	inspect (struct intr_frame *f) {
+		const void *va = (const void *) f->R.rax;
+		f->R.rax = PTE_ADDR (pml4_get_page (thread_current ()->pml4, va));
+	}
+
+	0x42, 3, INTR_OFF, inspect, "Inspect Virtual Memory"
+*/s
+
+
 
 /* Registers external interrupt VEC_NO to invoke HANDLER, which
    is named NAME for debugging purposes.  The handler will
@@ -253,6 +265,18 @@ intr_register_int (uint8_t vec_no, int dpl, enum intr_level level,
 	ASSERT (vec_no < 0x20 || vec_no > 0x2f);
 	register_handler (vec_no, dpl, level, handler, name);
 }
+/*
+
+	static void
+	inspect (struct intr_frame *f) {
+		const void *va = (const void *) f->R.rax;
+		f->R.rax = PTE_ADDR (pml4_get_page (thread_current ()->pml4, va));
+	}
+
+	0x42, 3, INTR_OFF, inspect, "Inspect Virtual Memory"
+*/
+
+
 
 /* Returns true during processing of an external interrupt
    and false at all other times. */
