@@ -231,7 +231,7 @@ register_handler (uint8_t vec_no, int dpl, enum intr_level level,
 	}
 
 	0x42, 3, INTR_OFF, inspect, "Inspect Virtual Memory"
-*/s
+*/
 
 
 

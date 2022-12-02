@@ -121,6 +121,23 @@ vm_evict_frame (void) {
 }
 
 
+/* palloc() and get frame. If there is no available page, evict the page
+ * and return it. This always return valid address. That is, if the user pool
+ * memory is full, this function evicts the frame to get the available memory
+ * space.*/
+static struct frame *
+vm_get_frame (void) {
+	struct frame *frame = (struct frame*)malloc(sizeof(struct frame));
+
+	// ToDo 1: 프레임 할당
+	frame->page = (struct page*)palloc_get_page(PAL_USER);
+
+	ASSERT (frame != NULL);
+	ASSERT (frame->page == NULL);
+	return frame;
+}
+
+
 /* Growing the stack. */
 static void
 vm_stack_growth (void *addr UNUSED) {
@@ -159,7 +176,7 @@ vm_claim_page (void *va UNUSED) {
 	struct page *page = NULL;
 	struct thread* cur = thread_current();
 	/* TODO: Fill this function */
-	page = spt_find_page(cur->spt,va);
+	page = spt_find_page(&cur->spt,va);
 	return vm_do_claim_page (page);
 }
 
@@ -178,21 +195,6 @@ vm_do_claim_page (struct page *page) {
 	return swap_in (page, frame->kva);
 }
 
-/* palloc() and get frame. If there is no available page, evict the page
- * and return it. This always return valid address. That is, if the user pool
- * memory is full, this function evicts the frame to get the available memory
- * space.*/
-static struct frame *
-vm_get_frame (void) {
-	struct frame *frame = (struct frame*)malloc(sizeof(struct frame));
-
-	// ToDo 1: 프레임 할당
-	frame->page = (struct page*)palloc_get_page(PAL_USER);
-
-	ASSERT (frame != NULL);
-	ASSERT (frame->page == NULL);
-	return frame;
-}
 
 /* Initializes hash table H to compute hash values using HASH and
    compare hash elements using LESS, given auxiliary data AUX.
