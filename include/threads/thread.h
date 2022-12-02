@@ -133,6 +133,9 @@ struct thread
 	struct semaphore wait_sema; /* exit 세마포어 */
 	struct semaphore free_sema; /* free 세마포어 */
 	int exit_status;			/* exit 호출 시 종료 status */
+	// ##### 1
+	struct list frame_table;
+
 	unsigned magic;		  /* Detects stack overflow. */
 };
 

@@ -6,6 +6,10 @@
 #include "lib/kernel/hash.h"
 #include "threads/vaddr.h"
 #include "threads/palloc.h"
+#include "userprog/process.h"
+
+// ##### 1
+struct list frame_table;
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -129,11 +133,18 @@ static struct frame *
 vm_get_frame (void) {
 	struct frame *frame = (struct frame*)malloc(sizeof(struct frame));
 
-	// ToDo 1: 프레임 할당
-	frame->page = (struct page*)palloc_get_page(PAL_USER);
-
 	ASSERT (frame != NULL);
 	ASSERT (frame->page == NULL);
+	// ToDo 1: 프레임 할당
+	frame->kva = (struct page*)palloc_get_page(PAL_USER);
+	// 유저풀에서 못가져왔을시 페이지가 없는 것 처리를 해야함
+	// if frame->kva 가 null일 경우 스왑아웃 처리를
+	if(frame->kva == NULL)
+		PANIC("에러 !!! 스왑아웃 해야함");
+	list_push_back (&frame_table, &frame->frame_elem);
+
+	// frame->page = NULL;
+
 	return frame;
 }
 
@@ -176,7 +187,9 @@ vm_claim_page (void *va UNUSED) {
 	struct page *page = NULL;
 	struct thread* cur = thread_current();
 	/* TODO: Fill this function */
-	page = spt_find_page(&cur->spt,va);
+	page = spt_find_page(&cur->spt, va);
+	if (page != NULL)
+		return false;
 	return vm_do_claim_page (page);
 }
 
@@ -191,8 +204,12 @@ vm_do_claim_page (struct page *page) {
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	// 페이지 테이블 entry에 페이지 가상 주소와 프레임 물리주소를 매핑해라
-	pml4_set_page(cur->pml4, page, frame, true); // 수정 필요
-	return swap_in (page, frame->kva);
+	// pml4_set_page(cur->pml4, page, frame, true); // 수정 필요
+	// install_page(page, frame, true); //true???
+	if (pml4_get_page(cur->pml4, page) == NULL && pml4_set_page(cur->pml4, page, frame, true))
+		return swap_in (page, frame->kva);
+	else 
+		return false;
 }
 
 
