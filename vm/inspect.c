@@ -13,6 +13,7 @@ inspect (struct intr_frame *f) {
 }
 
 /* Tool for testing vm component. Calling this function via int 0x42.
+VM 구성 요소를 테스트하기 위한 도구입니다. int 0x42를 통해 이 함수를 호출합니다.
  * Input:
  *   @RAX - Virtual address to inspect
  * Output:

@@ -118,6 +118,10 @@ resolve_area_info (struct area *base_mem, struct area *ext_mem) {
  * All the pages are manged by this allocator, even include code page.
  * Basically, give half of memory to kernel, half to user.
  * We push base_mem portion to the kernel as much as possible.
+ * 풀을 채웁니다.
+ * 모든 페이지는 코드 페이지를 포함하여 이 할당자에 의해 관리됩니다.
+ * 기본적으로 메모리의 절반은 커널에, 절반은 사용자에게 준다.
+ * 우리는 base_mem 부분을 가능한 한 커널에 푸시한다.
  */
 static void
 populate_pools (struct area *base_mem, struct area *ext_mem) {
@@ -338,7 +342,9 @@ static void
 init_pool (struct pool *p, void **bm_base, uint64_t start, uint64_t end) {
   /* We'll put the pool's used_map at its base.
      Calculate the space needed for the bitmap
-     and subtract it from the pool's size. */
+     and subtract it from the pool's size. 
+	 우리는 pool의 used_map을 그것의 기초에 둘 것이다.
+     비트맵에 필요한 공간을 계산하여 풀 크기에서 빼십시오.*/
 	uint64_t pgcnt = (end - start) / PGSIZE;
 	size_t bm_pages = DIV_ROUND_UP (bitmap_buf_size (pgcnt), PGSIZE) * PGSIZE;
 

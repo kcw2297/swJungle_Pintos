@@ -14,7 +14,8 @@ static const struct page_operations file_ops = {
 	.type = VM_FILE,
 };
 
-/* The initializer of file vm */
+/* The initializer of file vm
+file vm 초기화 */
 void
 vm_file_init (void) {
 }

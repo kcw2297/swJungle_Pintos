@@ -31,11 +31,23 @@
    trap gate).  The difference is that entering an interrupt gate
    disables interrupts, but entering a trap gate does not.  See
    [IA32-v3a] section 5.12.1.2 "Flag Usage By Exception- or
-   Interrupt-Handler Procedure" for discussion. */
+   Interrupt-Handler Procedure" for discussion. 
+   
+함수를 호출하는 게이트를 만듭니다.
+
+게이트에는 기술자 권한 수준 DPL이 있으며,
+이는 프로세서가 DPL 또는 낮은 번호의 링에 있을 때 의도적으로 호출될 수 있음을 의미한다. 
+실제로 DPL==3은 사용자 모드가 게이트로 호출하는 것을 허용하고 DPL==0은 이러한 호출을 방지합니다. 
+사용자 모드에서 발생하는 결함 및 예외로 인해 DPL==0인 게이트가 여전히 호출됩니다.
+
+TYPE은 14(인터럽트 게이트의 경우) 또는 15(트랩 게이트의 경우)여야 합니다. 
+차이점은 인터럽트 게이트를 입력하면 인터럽트가 비활성화되지만 트랩 게이트를 입력하면 
+비활성화되지 않는다는 것입니다. 자세한 내용은 [IA32-v3a] 섹션 5.12.1.2 "예외에 의한 
+플래그 사용 - 또는 인터럽트 핸들러 절차"를 참조하십시오.*/
 
 struct gate {
-	unsigned off_15_0 : 16;   // low 16 bits of offset in segment
-	unsigned ss : 16;         // segment selector
+	unsigned off_15_0 : 16;   // low 16 bits of offset in segment  세그먼트에서 낮은 16비트 오프셋
+	unsigned ss : 16;         // segment selector  세그먼트 선택기
 	unsigned ist : 3;        // # args, 0 for interrupt/trap gates
 	unsigned rsv1 : 5;        // reserved(should be zero I guess)
 	unsigned type : 4;        // type(STS_{TG,IG32,TG32})
@@ -50,7 +62,13 @@ struct gate {
 /* The Interrupt Descriptor Table (IDT).  The format is fixed by
    the CPU.  See [IA32-v3a] sections 5.10 "Interrupt Descriptor
    Table (IDT)", 5.11 "IDT Descriptors", 5.12.1.2 "Flag Usage By
-   Exception- or Interrupt-Handler Procedure". */
+   Exception- or Interrupt-Handler Procedure".
+   
+   IDT(Interrupt Descriptor Table)입니다. 
+   형식은 CPU에 의해 고정됩니다. 
+   [IA32-v3a] 섹션 5.10 "Interrupt Descriptor Table(IDT)", 
+   5.11 "IDT Descriptors", 5.12.1.2 "예외에 의한 플래그 사용 - 
+   또는 인터럽트 핸들러 절차"를 참조하십시오 */
 static struct gate idt[INTR_CNT];
 
 static struct desc_ptr idt_desc = {
@@ -99,7 +117,11 @@ static const char *intr_names[INTR_CNT];
    pre-empted.  Handlers for external interrupts also may not
    sleep, although they may invoke intr_yield_on_return() to
    request that a new process be scheduled just before the
-   interrupt returns. */
+   interrupt returns. 
+   외부 인터럽트는 타이머와 같은 CPU 외부의 장치에 의해 생성되는 인터럽트입니다. 
+   외부 인터럽트는 인터럽트가 꺼진 상태에서 실행되므로 네스트가 발생하지 않으며 
+   사전에 차단되지도 않습니다. 외부 인터럽트 핸들러는 인터럽트가 반환되기 직전에 
+   intr_yield_on_return()을 호출하여 새 프로세스를 예약하도록 요청할 수도 있지만 절전 모드가 아닐 수도 있다.*/
 static bool in_external_intr;   /* Are we processing an external interrupt? */
 static bool yield_on_return;    /* Should we yield on interrupt return? */
 
