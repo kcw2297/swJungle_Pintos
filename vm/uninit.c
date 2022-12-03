@@ -42,7 +42,8 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 	};
 }
 
-/* Initalize the page on first fault */
+/* Initalize the page on first fault 
+uninit_new에서 uninit_op으로 감, 그건 page_operations 의 한 종류이며 swap in 에서 불림 */
 static bool
 uninit_initialize (struct page *page, void *kva) {
 	struct uninit_page *uninit = &page->uninit;

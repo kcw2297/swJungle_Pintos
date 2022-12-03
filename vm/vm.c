@@ -53,7 +53,8 @@ static struct frame *vm_evict_frame (void);
  * page, do not create it directly and make it through this function or
  * `vm_alloc_page`. 
  * Initializer를 사용하여 보류 중인 페이지 개체를 만듭니다. 
- * 페이지를 생성하려면 직접 생성하지 말고 이 함수 또는 'vm_alloc_page'를 통해 생성하십시오.*/
+ * 페이지를 생성하려면 직접 생성하지 말고 이 함수 또는 'vm_alloc_page'를 통해 생성하십시오.
+ * load_segment에서 불림, uninit_new 함수 호출*/
 bool
 vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		vm_initializer *init, void *aux) {
@@ -67,12 +68,22 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 	if (spt_find_page (spt, upage) == NULL) {
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
-		 * TODO: should modify the field after calling the uninit_new. */
+		 * TODO: should modify the field after calling the uninit_new.
+		 * 페이지를 생성하고 VM 유형에 따라 이니셜라이저를 가져온 다음
+		uninit_new를 호출하여 "uninit" 페이지 구조를 생성합니다. 
+		uninit_new를 호출한 후 필드를 수정해야 합니다. */
+		struct page *page = (struct page *)malloc(sizeof(struct page));
+		if (type == VM_ANON)
+			uninit_new(page, upage, init, type, aux, anon_initializer);
+		else
+			uninit_new(page, upage, init, type, aux, file_backed_initializer);
+		
+		//페이지 구조가 있으면 프로세스의 추가 페이지 테이블에 페이지를 삽입하십시오.
+		// ##### 1 잘 못 알고있을수 있음!
 
 		/* TODO: Insert the page into the spt. 
-		페이지를 생성하고 VM 유형에 따라 이니셜라이저를 가져온 다음
-		uninit_new를 호출하여 "uninit" 페이지 구조를 생성합니다. 
-		uninit_new를 호출한 후 필드를 수정해야 합니다. 페이지를 SPT에 삽입합니다.*/
+		 페이지를 SPT에 삽입합니다.*/
+		spt_insert_page(spt, page);
 	}
 err:
 	return false;
