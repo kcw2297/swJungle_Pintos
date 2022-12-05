@@ -11,4 +11,10 @@ void process_exit (void);
 void process_activate (struct thread *next);
 void argument_stack(char **argv, int argc, struct intr_frame *if_);
 
+struct container{
+    struct file *file;
+    off_t offset;
+    size_t page_read_bytes;
+};
+
 #endif /* userprog/process.h */
