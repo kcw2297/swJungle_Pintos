@@ -17,11 +17,17 @@ static const struct page_operations anon_ops = {
 	.type = VM_ANON,
 };
 
+//FOR ANON_INIT
+struct bitmap *swap_table;
+const size_t SECTORS_PER_PAGE = PGSIZE / DISK_SECTOR_SIZE;
+
 /* Initialize the data for anonymous pages */
 void
 vm_anon_init (void) {
 	/* TODO: Set up the swap_disk. */
-	swap_disk = NULL;
+	swap_disk = disk_get(1,1);
+	size_t swap_size = disk_size(swap_disk) / SECTORS_PER_PAGE;
+	swap_table = bitmap_create(swap_size);
 }
 
 /* Initialize the file mapping */
