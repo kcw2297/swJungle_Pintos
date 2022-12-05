@@ -174,16 +174,28 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	}
 
 	void *rsp_stack = is_kernel_vaddr(f->rsp) ? thread_current()->rsp_stack : f->rsp;
-	if(not_present){
-		if(!vm_claim_page(addr)){
-			if(rsp_stack - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK){
-				vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
-				return true;
-			}
-			return false;
-		}
-		else
-			return true;
+	// if(not_present){
+	// 	if(!vm_claim_page(addr)){
+	// 		if(rsp_stack - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK){
+	// 			vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
+	// 			return true;
+	// 		}
+	// 		return false;
+	// 	}
+	// 	else
+	// 		return true;
+	// }
+	// return false;
+
+	if(!not_present)
+		return false;
+
+	if(vm_claim_page(addr))
+		return true;
+		
+	if(rsp_stack - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK){
+		vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
+		return true;
 	}
 	return false;
 }
