@@ -556,7 +556,7 @@ load(const char *file_name, struct intr_frame *if_)
 	// lock_acquire(&file_lock);
 	/* Open executable file. */
 	file = filesys_open(file_name);
-	printf("===> filesys_open : %s\n", file_name);
+	// printf("===> filesys_open : %s\n", file_name);
 
 	if (file == NULL)
 	{

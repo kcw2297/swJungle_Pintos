@@ -253,7 +253,10 @@ vm_claim_page (void *va UNUSED) {
 	struct page *page = NULL;
 	struct thread* cur = thread_current();
 	/* TODO: Fill this function */
+
+	// printf("===> vm_claim_page va: %p \n", va);
 	page = spt_find_page(&cur->spt, va);
+	// printf("===> vm_claim_page page: %p \n", page);
 
 	if (page == NULL)
 		return false;
@@ -278,7 +281,10 @@ vm_do_claim_page (struct page *page) {
 	// 	return swap_in (page, frame->kva);
 	// else 
 	// 	return false;
-	if (pml4_get_page(cur->pml4, page) == NULL && pml4_set_page(cur->pml4, page, frame, page->writable))	// install_page() 
+
+	// printf("===> %p \n", page);
+	// printf("===> %p \n", frame);
+	if (pml4_get_page(cur->pml4, page->va) == NULL && pml4_set_page(cur->pml4, page->va, frame->kva, page->writable))	// install_page() 
 		return swap_in (page, frame->kva);
 	else 
 		return false;
