@@ -24,6 +24,7 @@ static void rehash (struct hash *);
    compare hash elements using LESS, given auxiliary data AUX.
    주어진 보조 데이터 AUX에서 해시를 사용하여 해시 값을 계산하고 
    LESS를 사용하여 해시 요소를 비교하기 위해 해시 테이블 H를 초기화합니다.*/
+   // 초기 hash table 세팅
 bool
 hash_init (struct hash *h,
 		hash_hash_func *hash, hash_less_func *less, void *aux) {

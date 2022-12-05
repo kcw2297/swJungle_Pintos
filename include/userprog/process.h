@@ -12,4 +12,9 @@ void process_activate (struct thread *next);
 void argument_stack(char **argv, int argc, struct intr_frame *if_);
 static bool install_page(void *upage, void *kpage, bool writable);
 
+struct container {
+    struct file *file;
+    off_t offset;
+    size_t page_read_bytes;
+};
 #endif /* userprog/process.h */

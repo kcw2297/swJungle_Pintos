@@ -11,10 +11,12 @@
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 #include "userprog/process.h"
+#include "vm/vm.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
-void check_address(void *addr);
+// void check_address(void *addr);
+struct page* check_address(void *addr);
 
 void halt (void);
 void exit (int status);
@@ -67,17 +69,37 @@ syscall_init (void) {
 /* 주소 값이 유저 영역에서 사용하는 주소 값인지 확인 하는 함수
 Pintos에서는 시스템 콜이 접근할 수 있는 주소를 0x8048000~0xc0000000으로 제한함 
 유저 영역을 벗어난 영역일 경우 프로세스 종료(exit(-1)) */
-void 
-check_address(void *addr) {
-	struct thread *cur = thread_current();
-/* 1. 포인터가 가리키는 주소가 유저영역의 주소인지 확인 */
-/* 2. 포인터가 가리키는 주소가 존재하는지 확인 */
-/* 3. 포인터가 가리키는 주소에 해당하는 실주소가 없는 경우 NULL 반환 */
-// || pml4_get_page(cur->pml4, addr) == NULL
-	if(!is_user_vaddr(addr) || addr == NULL || pml4_get_page(cur->pml4, addr) == NULL){
+// void 
+// check_address(void *addr) {
+// 	struct thread *cur = thread_current();
+// /* 1. 포인터가 가리키는 주소가 유저영역의 주소인지 확인 */
+// /* 2. 포인터가 가리키는 주소가 존재하는지 확인 */
+// /* 3. 포인터가 가리키는 주소에 해당하는 실주소가 없는 경우 NULL 반환 */
+// // || pml4_get_page(cur->pml4, addr) == NULL
+// 	if(!is_user_vaddr(addr) || addr == NULL || pml4_get_page(cur->pml4, addr) == NULL){
+// 		exit(-1);
+// 	}
+// /* 잘못된 접근일 경우 프로세스 종료 */ 
+// }
+
+struct page* check_address(void *addr) {
+	if(is_kernel_vaddr(addr))
+	{
 		exit(-1);
 	}
-/* 잘못된 접근일 경우 프로세스 종료 */ 
+	return spt_find_page(&thread_current()->spt, addr);
+}
+
+// SYS_READ -> to_write == 1
+// SYS_WRITE -> to_write == 0
+void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write) {
+    for (int i = 0; i < size; i++) {
+        struct page* page = check_address(buffer + i);    // 인자로 받은 buffer부터 buffer + size까지의 크기가 한 페이지의 크기를 넘을수도 있음
+        if (page == NULL)
+            exit(-1);
+        if (to_write == true && page->writable == false)
+            exit(-1);
+    }
 }
 
 /* The main system call interface */
@@ -102,6 +124,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			f->R.rax = remove(f->R.rdi);
 			break;
 		case SYS_WRITE:
+			check_valid_buffer(f->R.rsi, f->R.rdx, f->rsp, 0);
 			f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
 			break;
 		case SYS_WAIT:
@@ -125,6 +148,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			f->R.rax = filesize(f->R.rdi);
 			break;
 		case SYS_READ:
+			check_valid_buffer(f->R.rsi, f->R.rdx, f->rsp, 1);
 			f->R.rax = read(f->R.rdi, f->R.rsi, f->R.rdx);
 			break;
 		case SYS_SEEK:
