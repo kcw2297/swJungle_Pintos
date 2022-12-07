@@ -323,23 +323,26 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 	 * src 의 spt 에 있는 각 페이지를 반복하며 dst의 spt에 정확한 복사본을 만든다
 	 */
 	struct hash_iterator i;
-    hash_first (&i, &src->hash_tb);
-    while (hash_next (&i)) {	// src의 각각의 페이지를 반복문을 통해 복사
-        struct page *parent_page = hash_entry (hash_cur (&i), struct page, hash_elem);   // 현재 해시 테이블의 element 리턴
+    hash_first (&i, &src->hash_tb); 		// hash_iterator를 초기화하고 elem을 head로 함
+    while (hash_next (&i)) {				// src의 각각의 페이지를 반복문을 통해 복사
+        struct page *parent_page = hash_entry (hash_cur (&i), struct page, h_elem);   // 현재 해시 테이블의 element 리턴
         enum vm_type type = page_get_type(parent_page);		// 부모 페이지의 type
         void *upage = parent_page->va;						// 부모 페이지의 가상 주소
         bool writable = parent_page->writable;				// 부모 페이지의 쓰기 가능 여부
         vm_initializer *init = parent_page->uninit.init;	// 부모의 초기화되지 않은 페이지들 할당 위해 
         void* aux = parent_page->uninit.aux;
 
-        if (parent_page->uninit.type & VM_MARKER_0) {			// 부모 페이지가 할당되어 있다면????
+        if (parent_page->uninit.type & VM_MARKER_0) {			// VM_MARKER_0 는 stack을 의미
+			// printf("======> VM_MARKER_0 \n");
             setup_stack(&thread_current()->tf);
         }
         else if(parent_page->operations->type == VM_UNINIT) {	// 부모 타입이 uninit인 경우
+			// printf("======> VM_UNINIT \n");
             if(!vm_alloc_page_with_initializer(type, upage, writable, init, aux))
                 return false;
         }
         else {
+			// printf("======> else \n");
             if(!vm_alloc_page(type, upage, writable))
                 return false;
             if(!vm_claim_page(upage))
@@ -376,8 +379,6 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 	// 	dstp = list_next(dstp);
 		
 	// }
-
-	return success;
 }
 
 /* Free the resource hold by the supplemental page table */
