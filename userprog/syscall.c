@@ -36,6 +36,7 @@ int read (int fd, void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
+void munmap (void *addr);
 
 struct lock filesys_lock;
 
@@ -159,7 +160,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			f->R.rax = tell(f->R.rdi);
 			break;
 		case SYS_MMAP:
-			f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.rcx, f->R.r8);
+			f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+			break;
+		case SYS_MUNMAP:
+			munmap(f->R.rdi);
+			break;
 		default:
 			// exit(-1);
 			// break;
@@ -398,15 +403,38 @@ tell (int fd) {
 
 void 
 *mmap (void *addr, size_t length, int writable, int fd, off_t offset){
-	if(length == 0 
-		|| (uint64_t)addr % PGSIZE 
-		|| 	spt_find_page(&thread_current()->spt, addr) 
-		|| addr == 0 
-		|| fd < 2)
-		return;
-	if(addr == NULL){
-		addr = palloc_get_page(PAL_USER|PAL_ZERO);
-	}
-	struct file * file = fd_to_file(fd);
-	return do_mmap(addr, length, writable, file, offset);	
+	if(offset % PGSIZE != 0){        // offset이 페이지 시작점에 있어야한다
+		return NULL;
+	} 
+
+	if(pg_round_down(addr) != addr 
+		|| is_kernel_vaddr(addr) 
+		|| addr == NULL
+		|| length <= 0)
+		return NULL;
+	
+	if(fd < 2)
+		exit(-1);
+
+	if(	spt_find_page(&thread_current()->spt, addr) )
+		return NULL;
+
+	// if(length == 0 
+	// 	|| (uint64_t)addr % PGSIZE 
+	// 	|| 	spt_find_page(&thread_current()->spt, addr) 
+	// 	|| addr == 0 
+	// 	|| fd < 2)
+	// 	return;
+	// if(addr == NULL){
+	// 	addr = palloc_get_page(PAL_USER|PAL_ZERO);
+	// }
+	struct file * target = fd_to_file(fd);
+
+	if(target == NULL)
+		return NULL;
+	return do_mmap(addr, length, writable, target, offset);	
+}
+
+void munmap (void *addr){
+	do_munmap(addr);
 }
