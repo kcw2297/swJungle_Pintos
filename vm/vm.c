@@ -205,6 +205,18 @@ vm_get_frame(void)
 static void
 vm_stack_growth(void *addr UNUSED)
 {
+	/*
+	1) stack_bottom 설정
+	2) 확장 요청한 스택 사이즈 확인
+	3) 스택 확장시, page 크기 단위로 해주기
+	4) 확장한 page 할당받기
+	*/
+	bool success = false;
+	success = vm_alloc_page(VM_ANON | VM_MARKER_0, addr, 1);
+	if (success) {
+			vm_claim_page(addr);
+			thread_current()->stack_bottom = addr;	
+	}
 }
 
 /* Handle the fault on write_protected page */
@@ -334,6 +346,7 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 
         if (parent_page->uninit.type & VM_MARKER_0) {			// VM_MARKER_0 는 stack을 의미
 			// printf("======> VM_MARKER_0 \n");
+			// printf("=====> %d \n", parent_page->uninit.type);
             setup_stack(&thread_current()->tf);
         }
         else if(parent_page->operations->type == VM_UNINIT) {	// 부모 타입이 uninit인 경우
@@ -343,6 +356,7 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
         }
         else {
 			// printf("======> else \n");
+			// printf("=====> %d \n", parent_page->uninit.type);
             if(!vm_alloc_page(type, upage, writable))
                 return false;
             if(!vm_claim_page(upage))
