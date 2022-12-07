@@ -2,10 +2,11 @@
 
 #include "vm/vm.h"
 #include "include/userprog/process.h"
+#include "include/threads/mmu.h"
 
-static bool file_backed_swap_in (struct page *page, void *kva);
-static bool file_backed_swap_out (struct page *page);
-static void file_backed_destroy (struct page *page);
+static bool file_backed_swap_in(struct page *page, void *kva);
+static bool file_backed_swap_out(struct page *page);
+static void file_backed_destroy(struct page *page);
 
 /* DO NOT MODIFY this struct */
 static const struct page_operations file_ops = {
@@ -17,13 +18,13 @@ static const struct page_operations file_ops = {
 
 /* The initializer of file vm
 file vm 초기화 */
-void
-vm_file_init (void) {
+void vm_file_init(void)
+{
 }
 
 /* Initialize the file backed page */
-bool
-file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
+bool file_backed_initializer(struct page *page, enum vm_type type, void *kva)
+{
 	/* Set up the handler */
 	page->operations = &file_ops;
 
@@ -32,33 +33,37 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 
 /* Swap in the page by read contents from the file. */
 static bool
-file_backed_swap_in (struct page *page, void *kva) {
+file_backed_swap_in(struct page *page, void *kva)
+{
 	struct file_page *file_page UNUSED = &page->file;
 }
 
 /* Swap out the page by writeback contents to the file. */
 static bool
-file_backed_swap_out (struct page *page) {
+file_backed_swap_out(struct page *page)
+{
 	struct file_page *file_page UNUSED = &page->file;
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */
 static void
-file_backed_destroy (struct page *page) {
+file_backed_destroy(struct page *page)
+{
 	struct file_page *file_page UNUSED = &page->file;
 }
 
 /* Do the mmap */
 void *
-do_mmap (void *addr, size_t length, int writable,
-		struct file *file, off_t offset) {
+do_mmap(void *addr, size_t length, int writable,
+		struct file *file, off_t offset)
+{
 	// file_seek(file, offset);
 	// uint32_t read_bytes = length;
 	// uint32_t zero_bytes = PGSIZE - (length % PGSIZE);
-	void * ori_addr = addr;
-	struct file *  mfile = file_reopen(file);
+	void *ori_addr = addr;
+	struct file *mfile = file_reopen(file);
 	size_t read_bytes = length > file_length(file) ? file_length(file) : length;
-    size_t zero_bytes = PGSIZE - read_bytes % PGSIZE;
+	size_t zero_bytes = PGSIZE - read_bytes % PGSIZE;
 
 	while (read_bytes > 0 || zero_bytes > 0)
 	{
@@ -89,6 +94,27 @@ do_mmap (void *addr, size_t length, int writable,
 }
 
 /* Do the munmap */
-void
-do_munmap (void *addr) {
+void do_munmap(void *addr)
+{
+	while (true)
+	{
+		struct page *page = spt_find_page(&thread_current()->spt, addr);
+		
+		if (page == NULL)
+			break;
+
+		struct container *aux = (struct container *)page->uninit.aux;
+	
+		if (pml4_is_dirty(thread_current()->pml4, page))
+		{
+			file_write_at(aux->file, page, PGSIZE, aux->offset);
+			pml4_set_dirty (thread_current()->pml4, page->va, 0);
+		}
+
+		pml4_clear_page(thread_current()->pml4, page->va);
+
+		// aux->offset += PGSIZE;
+
+		addr += PGSIZE;
+	}
 }
