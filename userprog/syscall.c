@@ -35,6 +35,7 @@ int filesize (int fd);
 int read (int fd, void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
+void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
 
 struct lock filesys_lock;
 
@@ -157,6 +158,8 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_TELL:
 			f->R.rax = tell(f->R.rdi);
 			break;
+		case SYS_MMAP:
+			f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.rcx, f->R.r8);
 		default:
 			// exit(-1);
 			// break;
@@ -391,4 +394,19 @@ tell (int fd) {
 		return;
 	}
 	return file_tell(file);
+}
+
+void 
+*mmap (void *addr, size_t length, int writable, int fd, off_t offset){
+	if(length == 0 
+		|| (uint64_t)addr % PGSIZE 
+		|| 	spt_find_page(&thread_current()->spt, addr) 
+		|| addr == 0 
+		|| fd < 2)
+		return;
+	if(addr == NULL){
+		addr = palloc_get_page(PAL_USER|PAL_ZERO);
+	}
+	struct file * file = fd_to_file(fd);
+	return do_mmap(addr, length, writable, file, offset);	
 }
