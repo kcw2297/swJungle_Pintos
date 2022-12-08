@@ -403,6 +403,14 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 	// }
 }
 
+void spt_destructor(struct hash_elem *e, void* aux) {
+	struct page * page = hash_entry(e, struct page, h_elem);
+	if(page->operations->type == VM_FILE){
+		do_munmap(page->va);
+	}
+	vm_dealloc_page(page);
+}
+
 /* Free the resource hold by the supplemental page table */
 void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 {
@@ -410,14 +418,18 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 	 * TODO: writeback all the modified contents to the storage. */
 	// munmap ??
 	// spt -> hash -> bucket h_elem -> page -> munmap? O , destroy(page) O
-	struct hash_iterator i;
-    hash_first (&i, &spt->hash_tb); 
-    while (hash_next (&i)) {	
-		struct page * page = hash_entry(hash_cur(&i), struct page, h_elem);
-		do_munmap(page->va);
-		vm_dealloc_page(page);
-	}
-	
+
+
+	// struct hash_iterator i;
+    // hash_first (&i, &spt->hash_tb); 
+    // while (hash_next (&i)) {	
+		// struct page * page = hash_entry(hash_cur(&i), struct page, h_elem);
+		// if(page->operations->type == VM_FILE){
+		// 	do_munmap(page->va);
+		// 	destroy(page);
+	// 	}
+	// }
+	hash_destroy(&spt->hash_tb, spt_destructor);
 }
 
 // ##### 1
