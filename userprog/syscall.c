@@ -413,7 +413,7 @@ void
 	if(pg_round_down(addr) != addr 
 		|| is_kernel_vaddr(addr) 
 		|| addr == NULL
-		|| length <= 0)
+		|| (long long)length <= 0)
 		return NULL;
 	
 	if(fd < 2)
