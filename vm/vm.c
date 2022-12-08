@@ -342,9 +342,9 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 	 * uninit 페이지를 할당하고 즉시 요청해야 합니다.
 	 * src 의 spt 에 있는 각 페이지를 반복하며 dst의 spt에 정확한 복사본을 만든다
 	 */
-	struct hash_iterator i;
-    hash_first (&i, &src->hash_tb); 		// hash_iterator를 초기화하고 elem을 head로 함
-    while (hash_next (&i)) {				// src의 각각의 페이지를 반복문을 통해 복사
+	struct hash_iterator i;					// 
+    hash_first (&i, &src->hash_tb); 		// i가 head를 가리킴
+    while (hash_next (&i)) {				// i가 다음 elem이 된다.  시작 src의 각각의 페이지를 반복문을 통해 복사
         struct page *parent_page = hash_entry (hash_cur (&i), struct page, h_elem);   // 현재 해시 테이블의 element 리턴
         enum vm_type type = page_get_type(parent_page);		// 부모 페이지의 type
         void *upage = parent_page->va;						// 부모 페이지의 가상 주소
@@ -408,6 +408,15 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+	// munmap ??
+	// spt -> hash -> bucket h_elem -> page -> munmap? O , destroy(page) O
+	struct hash_iterator i;
+    hash_first (&i, &spt->hash_tb); 
+    while (hash_next (&i)) {	
+		struct page * page = hash_entry(hash_cur(&i), struct page, h_elem);
+		do_munmap(page->va);
+		vm_dealloc_page(page);
+	}
 	
 }
 
