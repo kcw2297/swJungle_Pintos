@@ -238,24 +238,34 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 		return false;
 	}
 
-	// ===> 수정해보자 다음에
-	void *rsp_stack = is_kernel_vaddr(f->rsp) ? thread_current()->rsp_stack : f->rsp;
-	if (not_present)
-	{
-		if (!vm_claim_page(addr))
-		{
-			if (rsp_stack - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK)
-			{
-				vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
-				return true;
-			}
-			return false;
-		}
-		else
-			return true;
-	}
 
+	void *rsp_stack = is_kernel_vaddr(f->rsp) ? thread_current()->rsp_stack : f->rsp;
+	// printf("=========== vm_try_handle_fault case :1 \n");
+	if(!not_present)
+		return false;
+	// printf("=========== vm_try_handle_fault case :2 \n");
+	if(vm_claim_page(addr))
+		return true;
+	// printf("=========== vm_try_handle_fault case :3 \n");
 	return false;
+	// ===> 수정해보자 다음에
+	// void *rsp_stack = is_kernel_vaddr(f->rsp) ? thread_current()->rsp_stack : f->rsp;
+	// if (not_present)
+	// {
+	// 	if (!vm_claim_page(addr))
+	// 	{
+	// 		if (rsp_stack - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK)
+	// 		{
+	// 			vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
+	// 			return true;
+	// 		}
+	// 		return false;
+	// 	}
+	// 	else
+	// 		return true;
+	// }
+
+	// return false;
 	// return vm_do_claim_page (page);
 }
 
@@ -274,13 +284,11 @@ bool vm_claim_page(void *va UNUSED)
 	struct thread *cur = thread_current();
 	/* TODO: Fill this function */
 
-	// printf("===> vm_claim_page va: %p \n", va);
 	page = spt_find_page(&cur->spt, va);
-	// printf("===> vm_claim_page page: %p \n", page);
-
+	
 	if (page == NULL)
 		return false;
-
+	// printf("============ vm_claim_page \n");
 	return vm_do_claim_page(page);
 }
 
