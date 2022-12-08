@@ -205,18 +205,11 @@ vm_get_frame(void)
 static void
 vm_stack_growth(void *addr UNUSED)
 {
-	/*
-	1) stack_bottom 설정
-	2) 확장 요청한 스택 사이즈 확인
-	3) 스택 확장시, page 크기 단위로 해주기
-	4) 확장한 page 할당받기
-	*/
-	bool success = false;
-	success = vm_alloc_page(VM_ANON | VM_MARKER_0, addr, 1);
-	if (success) {
-			vm_claim_page(addr);
-			thread_current()->stack_bottom = addr;	
-	}
+	if(vm_alloc_page(VM_ANON | VM_MARKER_0, addr, 1))
+    {
+        vm_claim_page(addr);
+        thread_current()->stack_bottom -= PGSIZE;   // 스택은 위에서부터 쌓기 때문에 주소값 위치를 페이지 사이즈씩 마이너스함
+    }
 }
 
 /* Handle the fault on write_protected page */

@@ -198,10 +198,10 @@ wait (tid_t pid) {
 
 bool
 create (const char *file, unsigned initial_size) {
-	check_address(file);
-	/* 파일 이름과 크기에 해당하는 파일 생성 */
-	/* 파일 생성 성공 시 true 반환, 실패 시 false 반환 */
-	return filesys_create(file, initial_size);
+	if (file)
+        return filesys_create(file,initial_size); // ASSERT, dir_add (name!=NULL)
+    else
+        exit(-1);
 }
 
 bool
@@ -267,6 +267,10 @@ open (const char *file) {
 /* 성공 시 fd를 생성하고 반환, 실패 시 -1 반환 */
 	check_address(file);
 	lock_acquire(&filesys_lock);
+	if (file == NULL) {
+		return -1;
+	}
+
 	struct file *open_file = filesys_open (file);
 	
 	if(open_file == NULL){
