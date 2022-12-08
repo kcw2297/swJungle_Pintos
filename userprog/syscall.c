@@ -107,6 +107,9 @@ void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
+	#ifdef VM
+    thread_current()->rsp_stack = f->rsp;
+	#endif
 	/* 유저 스택에 저장되어 있는 시스템 콜 넘버를 이용해 시스템 콜 핸들러 구현 */
 	int sys_num = f->R.rax;
 	// check_address(sys_num);  /* 스택 포인터가 유저 영역인지 확인 */

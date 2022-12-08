@@ -105,9 +105,11 @@ void do_munmap(void *addr)
 
 		struct container *aux = (struct container *)page->uninit.aux;
 	
-		if (pml4_is_dirty(thread_current()->pml4, page))
+		// if (pml4_is_dirty(thread_current()->pml4, page))
+		if (pml4_is_dirty(thread_current()->pml4, page->va))
 		{
-			file_write_at(aux->file, page, PGSIZE, aux->offset);
+			// file_write_at(aux->file, page, PGSIZE, aux->offset);
+			file_write_at(aux->file, addr, aux->page_read_bytes, aux->offset);
 			pml4_set_dirty (thread_current()->pml4, page->va, 0);
 		}
 
