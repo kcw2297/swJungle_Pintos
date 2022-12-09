@@ -2,6 +2,7 @@
   anon.c : 디스크가 아닌 이미지에 대한 페이지 구현(익명 페이지라고도 함) */
 
 #include "vm/vm.h"
+#include "lib/kernel/bitmap.h"
 #include "devices/disk.h"
 
 /* DO NOT MODIFY BELOW LINE */
@@ -61,17 +62,28 @@ anon_swap_in (struct page *page, void *kva) {
 /* Swap out the page by writing contents to the swap disk. */
 static bool
 anon_swap_out (struct page *page) {
+
 	struct anon_page *anon_page = &page->anon;
-// 메모리에서 디스크로 내용 복사 -> anon page를 스왑 디스크로 보냄
 
-// 스왑 테이블에서 사용 가능한 스왑 슬롯 찾기 (슬롯 == 1 page)
+	// 스왑 테이블에서 사용 가능한 스왑 슬롯 찾기 (슬롯 == 1 page)
+	size_t page_no = bitmap_scan (swap_table, 0, 1, 0);
 
-// 데이터가 담긴 페이지를 슬롯에 복사
+	if(page_no == BITMAP_ERROR)
+		return false;
 
-// 데이터의 위치를 페이지 구조체에 저장
+	for (int i = 0; i < SECTORS_PER_PAGE; i++) {
+		disk_write (swap_disk, page_no * SECTORS_PER_PAGE + i, page->va + DISK_SECTOR_SIZE * i);
+	}
 
+	bitmap_set(swap_table, page_no, true);
+	
+	pml4_clear_page(thread_current()->pml4, page->va);
 
-}
+	anon_page->swap_index = page_no;
+
+	return true; 
+
+	}
 
 /* Destroy the anonymous page. PAGE will be freed by the caller. */
 static void

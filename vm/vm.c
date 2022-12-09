@@ -169,7 +169,8 @@ vm_get_victim(void)
 
 	while(start != list_end(&frame_table)) {
 
-		struct hash_elem *hash_start = list_elem_to_hash_elem (start);
+		// struct hash_elem *hash_start = list_elem_to_hash_elem (start);
+		struct hash_elem *hash_start = list_entry(start, struct hash_elem, list_elem);
 		struct page *page = hash_entry(hash_start, struct page, h_elem);
 		
 		if (pml4_is_accessed(thread_current()->pml4, page->va))
