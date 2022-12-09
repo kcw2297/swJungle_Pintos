@@ -266,10 +266,10 @@ int
 open (const char *file) {
 /* 성공 시 fd를 생성하고 반환, 실패 시 -1 반환 */
 	check_address(file);
-	lock_acquire(&filesys_lock);
 	if (file == NULL) {
 		return -1;
 	}
+	lock_acquire(&filesys_lock);
 
 	struct file *open_file = filesys_open (file);
 	
@@ -292,7 +292,7 @@ write (int fd, const void *buffer, unsigned size) {
 	int write_result;
 	struct file *file = fd_to_file(fd);
 	if(file == NULL){
-		return 0;
+		return -1;
 	}
 
 	if (fd == 1) {	// stdout(표준 출력) - 모니터
@@ -408,6 +408,17 @@ tell (int fd) {
 	return file_tell(file);
 }
 
+struct file *process_get_file(int fd) {
+	struct thread *curr = thread_current();
+	struct file* fd_file = curr->fd_table[fd];
+
+	if(fd_file)
+		return fd_file;
+	else
+		return	NULL;
+}
+
+
 void 
 *mmap (void *addr, size_t length, int writable, int fd, off_t offset){
 	if(offset % PGSIZE != 0){        // offset이 페이지 시작점에 있어야한다
@@ -435,11 +446,12 @@ void
 	// if(addr == NULL){
 	// 	addr = palloc_get_page(PAL_USER|PAL_ZERO);
 	// }
-	struct file * target = fd_to_file(fd);
+	struct file * target = process_get_file(fd);
 
 	if(target == NULL)
 		return NULL;
-	return do_mmap(addr, length, writable, target, offset);	
+	void *ret = do_mmap(addr, length, writable, target, offset);	
+	return ret;
 }
 
 void munmap (void *addr){

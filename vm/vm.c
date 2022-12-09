@@ -82,10 +82,24 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		uninit_new를 호출한 후 필드를 수정해야 합니다. */
 		struct page *page = (struct page *)malloc(sizeof(struct page));
 
-		if (VM_TYPE(type) == VM_ANON)
-			uninit_new(page, upage, init, type, aux, anon_initializer);
-		else
-			uninit_new(page, upage, init, type, aux, file_backed_initializer);
+		// if (VM_TYPE(type) == VM_ANON)
+		// 	uninit_new(page, upage, init, type, aux, anon_initializer);
+		// else
+		// 	uninit_new(page, upage, init, type, aux, file_backed_initializer);
+
+		typedef bool (*initializerFunc)(struct page *, enum vm_type, void *);
+        initializerFunc initializer = NULL;
+
+        switch(VM_TYPE(type)) {
+            case VM_ANON:
+                initializer = anon_initializer;
+                break;
+            case VM_FILE:
+                initializer = file_backed_initializer;
+                break;
+		}
+
+        uninit_new(page, upage, init, type, aux, initializer);
 
 		//페이지 구조가 있으면 프로세스의 추가 페이지 테이블에 페이지를 삽입하십시오.
 		// ##### 1
@@ -403,10 +417,11 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 
 void spt_destructor(struct hash_elem *e, void* aux) {
 	struct page * page = hash_entry(e, struct page, h_elem);
-	if(page->operations->type == VM_FILE){
-		do_munmap(page->va);
-	}
-	vm_dealloc_page(page);
+	// if(page->operations->type == VM_FILE){
+	// 	do_munmap(page->va);
+	// }
+	// vm_dealloc_page(page);
+	free(page);
 }
 
 /* Free the resource hold by the supplemental page table */
@@ -418,15 +433,15 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 	// spt -> hash -> bucket h_elem -> page -> munmap? O , destroy(page) O
 
 
-	// struct hash_iterator i;
-    // hash_first (&i, &spt->hash_tb); 
-    // while (hash_next (&i)) {	
-		// struct page * page = hash_entry(hash_cur(&i), struct page, h_elem);
-		// if(page->operations->type == VM_FILE){
-		// 	do_munmap(page->va);
-		// 	destroy(page);
-	// 	}
-	// }
+	struct hash_iterator i;
+    hash_first (&i, &spt->hash_tb); 
+    while (hash_next (&i)) {	
+		struct page * page = hash_entry(hash_cur(&i), struct page, h_elem);
+		if(page->operations->type == VM_FILE){
+			do_munmap(page->va);
+			// destroy(page);
+		}
+	}
 	hash_destroy(&spt->hash_tb, spt_destructor);
 }
 

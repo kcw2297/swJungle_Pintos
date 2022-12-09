@@ -386,11 +386,23 @@ void test_max_priority (void){
 		struct list_elem *high = list_begin(&ready_list);	/* ready list에서 우선순위 제일 높은 것 */
 		struct thread *t = list_entry(high, struct thread, elem); /* high의 structure 포인터 반환 */
 		if(t->priority > curr->priority){	/* ready list에서 제일 높은 우선순위가 현재 스레드보다 높다면 */
-			thread_yield();					/*무조건 run thread 재우고 ready list 우선순위 높은 thread 실행 */
+			if (!intr_context())
+				thread_yield();					/*무조건 run thread 재우고 ready list 우선순위 높은 thread 실행 */
 		}
 	}else{
 		return;
 	} 
+	// struct thread *cp = thread_current();
+	// struct thread *first_thread;
+
+	// // project2 
+	// if(intr_context() || list_empty(&ready_list))
+	// 	return;
+
+	// first_thread = list_entry(list_front(&ready_list), struct thread, elem);
+
+	// if(cp->priority < first_thread->priority)
+	// 	thread_yield();
 }
 
 

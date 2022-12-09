@@ -20,7 +20,7 @@
 #include "intrinsic.h"
 
 // ===> 3-2
-#define VM
+// #define VM
 
 #ifdef VM
 #include "vm/vm.h"
@@ -565,8 +565,8 @@ load(const char *file_name, struct intr_frame *if_)
 		/* 락 해제 */
 		// lock_release(&file_lock);
 		printf("load: %s: open failed\n", file_name);
-		// goto done;
-		exit(-1);
+		goto done;
+		// exit(-1);
 	}
 
 	/* thread 구조체의 run_file을 현재 실행할 파일로 초기화 */ 
