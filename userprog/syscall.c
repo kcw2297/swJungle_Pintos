@@ -217,11 +217,11 @@ remove (const char *file) {
 int
 exec (const char *file) {
 	check_address(file);
-	int size = strlen(file) +1 ; // 마지막 null값이라 +1
 	char *fn_copy = palloc_get_page(PAL_ZERO);
 	if ((fn_copy) == NULL){
 		exit(-1);
 	}	
+	int size = strlen(file) +1 ; // 마지막 null값이라 +1
 	strlcpy(fn_copy, file, size);
 	/* process_exec() 함수를 호출하여 자식 프로세스 생성 */ 
 	if (process_exec(fn_copy) == -1){			/* 프로그램 적재 실패 시 -1 리턴 */

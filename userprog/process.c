@@ -274,12 +274,13 @@ int process_exec(void *f_name)
 {
 	char *file_name = f_name;
 	bool success;
+	//선도
+	char copy[128];
+	memcpy(copy, file_name, strlen(file_name)+1);
 
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
-	 * it stores the execution information to the member.
-	 * 우리는 스레드 구조에서 intr_frame을 사용할 수 없습니다.
-     * 이는 현재 스레드가 다시 rescheduled되면 실행 정보를 멤버에게 저장하기 때문입니다. */
+	 * it stores the execution information to the member.*/
 	struct intr_frame _if;
 	_if.ds = _if.es = _if.ss = SEL_UDSEG;
 	_if.cs = SEL_UCSEG;
@@ -290,9 +291,13 @@ int process_exec(void *f_name)
 
 	// memset(&_if, 0, sizeof(_if)); // 필요하지 않은 레지스터까지 0으로 바꿔 "#GP General Protection Exception"; 오류 발생
 
-	/* And then load the binary */
-	success = load(file_name, &_if); // f_name, if_.rip (function entry point), rsp(stack top : user stack)
+	// 선도
+	struct thread *curr = thread_current();
+	supplemental_page_table_init(&curr->spt);
 
+	/* And then load the binary */
+	// success = load(file_name, &_if); // f_name, if_.rip (function entry point), rsp(stack top : user stack)
+	success = load(copy, &_if);
 	/* If load failed, quit. */
 	palloc_free_page(file_name);
 	if (!success)
@@ -385,7 +390,7 @@ process_cleanup(void)
 	uint64_t *pml4;
 	/* Destroy the current process's page directory and switch back
 	 * to the kernel-only page directory. */
-	pml4 = curr->pml4;
+	pml4 = curr->pml4; // page directory
 	if (pml4 != NULL)
 	{
 		/* Correct ordering here is crucial.  We must set
@@ -537,6 +542,8 @@ load(const char *file_name, struct intr_frame *if_)
 	char *argv[128]; // 커맨드 라인 길이 제한 128
 	char *token, *save_ptr;
 	int argc = 0;
+
+	// memcpy(copy, file_name, strlen(file_name)+1);
 
 	token = strtok_r(file_name, " ", &save_ptr);
 	argv[argc] = token;
