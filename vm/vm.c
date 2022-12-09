@@ -240,6 +240,11 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	if(vm_claim_page(addr))
 		return true;
 	// printf("=========== vm_try_handle_fault case :3 \n");
+	if(rsp_stack - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK){
+		vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
+		return true;
+	}
+	
 	return false;
 	// ===> 수정해보자 다음에
 	// void *rsp_stack = is_kernel_vaddr(f->rsp) ? thread_current()->rsp_stack : f->rsp;
