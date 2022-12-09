@@ -56,6 +56,7 @@ struct hash_elem {
 	((STRUCT *) ((uint8_t *) &(HASH_ELEM)->list_elem        \
 		- offsetof (STRUCT, MEMBER.list_elem)))
 
+
 /* Computes and returns the hash value for hash element E, given
  * auxiliary data AUX.
  * 보조 데이터 AUX가 지정된 해시 요소 E에 대한 해시 값을 계산하고 반환합니다. */

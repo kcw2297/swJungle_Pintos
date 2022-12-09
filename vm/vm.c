@@ -4,14 +4,16 @@
 #include "vm/vm.h"
 #include "vm/inspect.h"
 #include "lib/kernel/hash.h"
+#include "lib/kernel/list.h"
 #include "threads/vaddr.h"
 #include "threads/palloc.h"
 #include "userprog/process.h"
 #include "threads/mmu.h"
 
+
 // ##### 1
 struct list frame_table;
-// struct list_elem *start;
+struct list_elem *start; // 클럭 알고리즘 분침
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes.
@@ -27,7 +29,7 @@ void vm_init(void)
 	/* DO NOT MODIFY UPPER LINES. */
 	/* TODO: Your code goes here. */
 	list_init(&frame_table);
-	// start = list_begin(&frame_table);
+	start = list_begin(&frame_table);
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -144,7 +146,47 @@ vm_get_victim(void)
 	struct frame *victim = NULL;
 	/* TODO: The policy for eviction is up to you. */
 
+	while(start != list_end(&frame_table)) {
+
+		// struct hash_elem *hash_start = list_elem_to_hash_elem (start);
+		struct hash_elem *hash_start = list_entry(start, struct hash_elem, list_elem);
+		struct page *page = hash_entry(hash_start, struct page, h_elem);
+		
+		if (pml4_is_accessed(thread_current()->pml4, page->va))
+		{
+			pml4_set_accessed(thread_current()->pml4, page->va, 0);
+		}
+
+		else {
+			victim = page->frame;
+			return victim;	
+		}
+
+		start = list_next(start);
+   	}
+
+	start = list_begin(&frame_table);
+
+	while(start != list_end(&frame_table)) {
+
+		struct hash_elem *hash_start = list_elem_to_hash_elem (start);
+		struct page *page = hash_entry(hash_start, struct page, h_elem);
+		
+		if (pml4_is_accessed(thread_current()->pml4, page->va))
+		{
+			pml4_set_accessed(thread_current()->pml4, page->va, 0);
+		}
+
+		else {
+			victim = page->frame;
+			return victim;	
+		}
+
+		start = list_next(start);
+   	}
+
 	return victim;
+
 }
 
 /* Evict one page and return the corresponding frame.
@@ -155,6 +197,12 @@ vm_evict_frame(void)
 {
 	struct frame *victim UNUSED = vm_get_victim();
 	/* TODO: swap out the victim and return the evicted frame. */
+	// victim->page->operations->swap_out
+	
+	if (!victim){
+		if (swap_out(victim->page))
+			return victim;
+	}
 
 	return NULL;
 }
@@ -178,7 +226,7 @@ vm_get_frame(void)
 	// if frame->kva 가 null일 경우 스왑아웃 처리를
 	if (frame->kva == NULL)
 	{
-		PANIC("에러 !!! 스왑아웃 해야함");
+		vm_evict_frame();
 
 		// frame = vm_evict_frame(); // 다음에 구현
 		// frame->page = NULL;

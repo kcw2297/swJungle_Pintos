@@ -3,6 +3,8 @@
 #include "vm/vm.h"
 #include "include/userprog/process.h"
 #include "include/threads/mmu.h"
+#include "devices/disk.h"
+
 
 static bool file_backed_swap_in(struct page *page, void *kva);
 static bool file_backed_swap_out(struct page *page);
@@ -15,6 +17,7 @@ static const struct page_operations file_ops = {
 	.destroy = file_backed_destroy,
 	.type = VM_FILE,
 };
+
 
 /* The initializer of file vm
 file vm 초기화 */
