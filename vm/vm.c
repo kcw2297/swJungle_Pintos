@@ -62,33 +62,29 @@ static struct frame *vm_evict_frame(void);
  * load_segment에서 불림, uninit_new 함수 호출*/
 bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writable,
 									vm_initializer *init, void *aux)
-{
+{	
+	// printf("va: %p\n",upage);
+	// 8번의 enter, 0x400000~0x4747f000, 이후 다시 0x400000로 시작
 
 	ASSERT(VM_TYPE(type) != VM_UNINIT)
 
-	// printf("=====> vm_alloc_page_with_initializer 시작 \n");
-
 	struct supplemental_page_table *spt = &thread_current()->spt;
-
-	/* Check wheter the upage is already occupied or not.
-	업데이트가 이미 사용 중인지 확인합니다.*/
+	
+	/* Check wheter the upage is already occupied or not.*/
 	if (spt_find_page(spt, upage) == NULL)
 	{
-		/* TODO: Create the page, fetch the initialier according to the VM type,
-		 * TODO: and then create "uninit" page struct by calling uninit_new. You
-		 * TODO: should modify the field after calling the uninit_new.
-		 * 페이지를 생성하고 VM 유형에 따라 이니셜라이저를 가져온 다음
-		uninit_new를 호출하여 "uninit" 페이지 구조를 생성합니다.
-		uninit_new를 호출한 후 필드를 수정해야 합니다. */
+		
 		struct page *page = (struct page *)malloc(sizeof(struct page));
 
 		if (VM_TYPE(type) == VM_ANON)
 			uninit_new(page, upage, init, type, aux, anon_initializer);
-		else
+		else if (VM_TYPE(type) == VM_FILE)
 			uninit_new(page, upage, init, type, aux, file_backed_initializer);
+		else {
+			uninit_new(page, upage, init, type, aux, NULL);
+		}
 
 		//페이지 구조가 있으면 프로세스의 추가 페이지 테이블에 페이지를 삽입하십시오.
-		// ##### 1
 		page->writable = writable;
 		/* TODO: Insert the page into the spt.
 		 페이지를 SPT에 삽입합니다.*/
@@ -106,11 +102,10 @@ err:
 	지정된 가상 주소가 포함된 페이지를 반환하거나 해당 페이지가 없는 경우 null 포인터를 반환합니다.*/
 struct page *
 spt_find_page(struct supplemental_page_table *spt UNUSED, void *va UNUSED)
-{
-	// struct page *page = NULL;
-	/* TODO: Fill this function. */
-
-	struct page *page = (struct page *)malloc(sizeof(struct page));
+{ 
+	// 에러전 마지막 va: 0x400000
+	struct page *page = NULL;
+	page = (struct page *)malloc(sizeof(struct page));
 	struct hash_elem *e;
 
 	page->va = pg_round_down(va);
@@ -130,10 +125,10 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 	/* TODO: Fill this function. */
 
 	// 삽입 성공 시 NULL 반환, 실패 시 elem 포인터 반환
-	if (hash_insert(&spt->hash_tb, &page->h_elem) != NULL)
-		return false;
+	if (!hash_insert(&spt->hash_tb, &page->h_elem))
+		return true;
 
-	return true;
+	return false;
 }
 
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)

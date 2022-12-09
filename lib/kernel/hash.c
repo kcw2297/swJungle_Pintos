@@ -138,6 +138,7 @@ hash_replace (struct hash *h, struct hash_elem *new) {
    null pointer if no equal element exists in the table. */
 struct hash_elem *
 hash_find (struct hash *h, struct hash_elem *e) {
+	// 에러전 마지막 hash_elem 위치: 0x80042430b0
 	return find_elem (h, find_bucket (h, e), e);
 }
 
@@ -301,26 +302,13 @@ find_bucket (struct hash *h, struct hash_elem *e) {
 	return &h->buckets[bucket_idx];
 }
 
-/*
-	page->va = pg_round_down(va);
-
-	struct hash_elem *
-	hash_find (struct hash *h, struct hash_elem *e) {
-		return find_elem (h, find_bucket (h, e), e);
-	}
-
-	unsigned
-	page_hash (const struct hash_elem *p_, void *aux UNUSED) {
-		const struct page *p = hash_entry (p_, struct page, h_elem);
-		return hash_bytes (&p->va, sizeof p->va);
-	}
-*/
-
 
 /* Searches BUCKET in H for a hash element equal to E.  Returns
    it if found or a null pointer otherwise. */
 static struct hash_elem *
 find_elem (struct hash *h, struct list *bucket, struct hash_elem *e) {
+	// intr_entry가 발생하면 kill함수 호출
+	// 매핑되지 않은 kernel memory에 접근시 kill이 발생
 	struct list_elem *i;
 
 	for (i = list_begin (bucket); i != list_end (bucket); i = list_next (i)) {
