@@ -227,6 +227,7 @@ vm_get_frame(void)
 	if (frame->kva == NULL)
 	{
 		vm_evict_frame();
+		//PANIC("에러 !!! 스왑아웃 해야함");
 
 		// frame = vm_evict_frame(); // 다음에 구현
 		// frame->page = NULL;
