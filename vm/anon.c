@@ -68,7 +68,7 @@ anon_swap_in (struct page *page, void *kva) {
 	}
 
 	bitmap_set(swap_table, page_no, false);
-	// ##### 1 고민
+	// ##### 1 고민 특히 0인지 1인지
 	pml4_set_page(thread_current()->pml4, page->va, kva, 0);
 	anon_page->swap_index = NULL;
 	

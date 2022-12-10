@@ -38,14 +38,44 @@ bool file_backed_initializer(struct page *page, enum vm_type type, void *kva)
 static bool
 file_backed_swap_in(struct page *page, void *kva)
 {
-	struct file_page *file_page UNUSED = &page->file;
+	// struct file_page *file_page UNUSED = &page->file;
+	if(page=NULL)
+		return false;
+	
+	struct container *aux = (struct container *)page->uninit.aux;
+	size_t page_zero_bytes = PGSIZE - aux->page_read_bytes;
+	// file_read_at(aux->file, kva, aux->page_read_bytes, aux->offset);
+	file_seek(aux->file, aux->offset);
+	if(file_read(aux->file, kva, aux->page_read_bytes) != (uint32_t)aux->page_read_bytes)
+		return false;
+	memset(kva + aux->page_read_bytes, 0, page_zero_bytes);
+	
+	// ##### 1 고민
+	pml4_set_page(thread_current()->pml4, page->va, kva, 1);
+
+
+	return true;
 }
 
 /* Swap out the page by writeback contents to the file. */
 static bool
 file_backed_swap_out(struct page *page)
 {
-	struct file_page *file_page UNUSED = &page->file;
+	// struct file_page *file_page UNUSED = &page->file;
+	if(page=NULL)
+		return false;
+
+	struct container *aux = (struct container *)page->uninit.aux;
+	if (pml4_is_dirty(thread_current()->pml4, page->va))
+	{
+		// file_write_at(aux->file, page, PGSIZE, aux->offset);
+		file_write_at(aux->file, page->va, aux->page_read_bytes, aux->offset);
+		pml4_set_dirty (thread_current()->pml4, page->va, 0);
+	}
+	//파일이 비워졌다, pml4_clear
+	// memset(page->frame->kva, 0, PGSIZE);
+	pml4_clear_page(thread_current()->pml4, page->va);
+	return true;
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */

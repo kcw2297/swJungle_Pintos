@@ -3,6 +3,7 @@
 #include "filesys/file.h"
 #include "vm/vm.h"
 #include "include/threads/vaddr.h"
+#include "lib/string.h"
 
 struct page;
 enum vm_type;
