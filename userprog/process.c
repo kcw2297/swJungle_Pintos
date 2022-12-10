@@ -372,7 +372,7 @@ void process_exit(void)
 
 	/* 프로세스 디스크립터에 프로세스 종료를 알림 */
 	sema_up (&cur->wait_sema);	// 현재가 자식 wait_sema up
-	process_cleanup (); // 부모가 리턴하기 전에 자식이 clean up 을 해야한다.
+	process_cleanup (); // 부모가 process_wait()에서 리턴하기 전에 자식이 clean up 을 해야한다.
 	sema_down (&cur->free_sema); 
 }
 
