@@ -51,18 +51,33 @@ anon_initializer (struct page *page, enum vm_type type, void *kva) {
 /* Swap in the page by read contents from the swap disk. */
 static bool
 anon_swap_in (struct page *page, void *kva) {
-	struct anon_page *anon_page = &page->anon;
 // swap disk에서 anon page로 스왑
 
 // struct page에 있는 index = 데이터 위치
 // swap table 업데이트
+	struct anon_page *anon_page = &page->anon;
+	size_t page_no = anon_page->swap_index;
 
+	if (bitmap_test(swap_table, page_no) == false) {
+        return false;
+    }
+
+	for(int i=0 ; i<SECTORS_PER_PAGE ; i++){
+		disk_read(swap_disk, page_no * SECTORS_PER_PAGE+i,
+		 kva + DISK_SECTOR_SIZE*i);
+	}
+
+	bitmap_set(swap_table, page_no, false);
+	// ##### 1 고민
+	pml4_set_page(thread_current()->pml4, page->va, kva, 0);
+	anon_page->swap_index = NULL;
+	
+	return true;
 }
 
 /* Swap out the page by writing contents to the swap disk. */
 static bool
 anon_swap_out (struct page *page) {
-
 	struct anon_page *anon_page = &page->anon;
 
 	// 스왑 테이블에서 사용 가능한 스왑 슬롯 찾기 (슬롯 == 1 page)
@@ -76,13 +91,11 @@ anon_swap_out (struct page *page) {
 	}
 
 	bitmap_set(swap_table, page_no, true);
-	
 	pml4_clear_page(thread_current()->pml4, page->va);
 
 	anon_page->swap_index = page_no;
 
 	return true; 
-
 	}
 
 /* Destroy the anonymous page. PAGE will be freed by the caller. */
