@@ -89,7 +89,12 @@ struct page* check_address(void *addr) {
 	{
 		exit(-1);
 	}
-	return spt_find_page(&thread_current()->spt, addr);
+	struct page* f_page = spt_find_page(&thread_current()->spt, addr);
+
+	if (!f_page)
+		exit(-1);
+
+	return f_page;
 }
 
 // SYS_READ -> to_write == 1
