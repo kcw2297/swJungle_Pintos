@@ -231,8 +231,8 @@ vm_get_frame(void)
 		//PANIC("에러 !!! 스왑아웃 해야함");
 
 		// frame = vm_evict_frame(); // 다음에 구현
-		// frame->page = NULL;
-		// return frame;
+		frame->page = NULL;
+		return frame;
 	}
 
 	list_push_back(&frame_table, &frame->frame_elem);
@@ -462,6 +462,7 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 	// munmap ??
 	// spt -> hash -> bucket h_elem -> page -> munmap? O , destroy(page) O
 
+	//if(hash_empty(&spt->hash_tb)) return;
 
 	struct hash_iterator i;
     hash_first (&i, &spt->hash_tb); 

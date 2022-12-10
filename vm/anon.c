@@ -27,8 +27,8 @@ const size_t SECTORS_PER_PAGE = PGSIZE / DISK_SECTOR_SIZE;
 익명 페이지에 대한 데이터 초기화 */
 void
 vm_anon_init (void) {
-	swap_disk = disk_get(1, 1);
-    size_t swap_size = disk_size(swap_disk) / SECTORS_PER_PAGE;
+	swap_disk = disk_get(1, 1);	// 디스크를 swap 디스크로 쓰겠다
+    size_t swap_size = disk_size(swap_disk) / SECTORS_PER_PAGE;	// 스왑 사이즈 = 스왑의 개수
     swap_table = bitmap_create(swap_size);
 }
 
@@ -55,6 +55,8 @@ anon_swap_in (struct page *page, void *kva) {
 
 // struct page에 있는 index = 데이터 위치
 // swap table 업데이트
+
+
 	struct anon_page *anon_page = &page->anon;
 	size_t page_no = anon_page->swap_index;
 
