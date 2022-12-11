@@ -51,7 +51,7 @@ file_backed_swap_in(struct page *page, void *kva)
 	memset(kva + aux->page_read_bytes, 0, page_zero_bytes);
 	
 	// ##### 1 고민
-	pml4_set_page(thread_current()->pml4, page->va, kva, 1);
+	//pml4_set_page(thread_current()->pml4, page->va, kva, 1);
 
 
 	return true;
@@ -62,7 +62,7 @@ static bool
 file_backed_swap_out(struct page *page)
 {
 	// struct file_page *file_page UNUSED = &page->file;
-	if(page=NULL)
+	if(page==NULL)
 		return false;
 
 	struct container *aux = (struct container *)page->uninit.aux;
