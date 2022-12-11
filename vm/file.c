@@ -39,7 +39,7 @@ static bool
 file_backed_swap_in(struct page *page, void *kva)
 {
 	// struct file_page *file_page UNUSED = &page->file;
-	if(page=NULL)
+	if(page==NULL)
 		return false;
 	
 	struct container *aux = (struct container *)page->uninit.aux;
@@ -90,10 +90,6 @@ void *
 do_mmap(void *addr, size_t length, int writable,
 		struct file *file, off_t offset)
 {
-		
-	// file_seek(file, offset);
-	// uint32_t read_bytes = length;
-	// uint32_t zero_bytes = PGSIZE - (length % PGSIZE);
 	void *ori_addr = addr;
 	struct file *mfile = file_reopen(file);
 	size_t read_bytes = length > file_length(file) ? file_length(file) : length;
@@ -108,7 +104,6 @@ do_mmap(void *addr, size_t length, int writable,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		// void *aux = NULL;
 		struct container *container = (struct container *)malloc(sizeof(struct container));
 		container->file = mfile;
 		container->page_read_bytes = page_read_bytes;
