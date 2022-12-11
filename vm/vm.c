@@ -144,24 +144,19 @@ static struct frame *
 vm_get_victim(void)
 {
 	struct frame *victim = NULL;
-	/* TODO: The policy for eviction is up to you. */
-
+    /* TODO: The policy for eviction is up to you. */
+	
 	while(start != list_end(&frame_table)) {
 
-		// struct hash_elem *hash_start = list_elem_to_hash_elem (start);
-		struct hash_elem *hash_start = list_entry(start, struct hash_elem, list_elem);
-		struct page *page = hash_entry(hash_start, struct page, h_elem);
+		victim = list_entry(start, struct frame, frame_elem);	// frame_elem은 frame의 멤버
 		
-		if (pml4_is_accessed(thread_current()->pml4, page->va))
-		{
-			pml4_set_accessed(thread_current()->pml4, page->va, 0);
+		if (pml4_is_accessed(thread_current()->pml4, victim->page->va)) {
+			pml4_set_accessed(thread_current()->pml4, victim->page->va, 0);
 		}
 
 		else {
-			victim = page->frame;
 			return victim;	
 		}
-
 		start = list_next(start);
    	}
 
@@ -169,25 +164,19 @@ vm_get_victim(void)
 
 	while(start != list_end(&frame_table)) {
 
-		// struct hash_elem *hash_start = list_elem_to_hash_elem (start);
-		struct hash_elem *hash_start = list_entry(start, struct hash_elem, list_elem);
-		struct page *page = hash_entry(hash_start, struct page, h_elem);
+		victim = list_entry(start, struct frame, frame_elem);	// frame_elem은 frame의 멤버
 		
-		if (pml4_is_accessed(thread_current()->pml4, page->va))
-		{
-			pml4_set_accessed(thread_current()->pml4, page->va, 0);
+		if (pml4_is_accessed(thread_current()->pml4, victim->page->va)) {
+			pml4_set_accessed(thread_current()->pml4, victim->page->va, 0);
 		}
 
 		else {
-			victim = page->frame;
 			return victim;	
 		}
 
 		start = list_next(start);
    	}
-
 	return victim;
-
 }
 
 /* Evict one page and return the corresponding frame.
@@ -196,16 +185,27 @@ vm_get_victim(void)
 static struct frame *
 vm_evict_frame(void)
 {
-	struct frame *victim UNUSED = vm_get_victim();
+	struct frame *victim = vm_get_victim();
 	/* TODO: swap out the victim and return the evicted frame. */
 	// victim->page->operations->swap_out
 	
-	if (!victim){
-		if (swap_out(victim->page))
-			return victim;
-	}
+	// printf("=====> evict_frame 안까지 들어오니 ? \n");
+	// printf("=====> victim : %p \n", victim);
+	// printf("=====> victim : %p \n", victim->page);
+	swap_out(victim->page);
 
-	return NULL;
+	return victim;
+	// if (victim != NULL){
+	// printf("=====> victim은 널이 아니겠지 \n");
+		
+	// 	if (swap_out(victim->page)) {
+	// printf("=====> swap out 해야지 \n");
+	// 		return victim;
+		
+	// 	}
+	// }
+
+	// return NULL;
 }
 
 /* palloc() and get frame. If there is no available page, evict the page
@@ -227,12 +227,14 @@ vm_get_frame(void)
 	// if frame->kva 가 null일 경우 스왑아웃 처리를
 	if (frame->kva == NULL)
 	{
-		vm_evict_frame();
-		//PANIC("에러 !!! 스왑아웃 해야함");
-
+		// printf("=====> vm_get_frame 안에 들어왔다 \n");
+		// vm_evict_frame();
+		frame = vm_evict_frame();
+		// printf("=====> vm_evict_frame 끝났따 \n");
+		
 		// frame = vm_evict_frame(); // 다음에 구현
 		frame->page = NULL;
-		return frame;
+		return frame;    
 	}
 
 	list_push_back(&frame_table, &frame->frame_elem);
@@ -266,8 +268,9 @@ vm_handle_wp(struct page *page UNUSED)
 bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 						 bool user UNUSED, bool write UNUSED, bool not_present UNUSED)
 {
-	struct supplemental_page_table *spt UNUSED = &thread_current()->spt;
+	struct supplemental_page_table *spt = &thread_current()->spt;
 	// struct page *page = NULL;
+
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
 	if (is_kernel_vaddr(addr))
@@ -275,40 +278,17 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 		return false;
 	}
 
-
 	void *rsp_stack = is_kernel_vaddr(f->rsp) ? thread_current()->rsp_stack : f->rsp;
-	// printf("=========== vm_try_handle_fault case :1 \n");
-	if(!not_present)
-		return false;
-	// printf("=========== vm_try_handle_fault case :2 \n");
+	
 	if(vm_claim_page(addr))
 		return true;
-	// printf("=========== vm_try_handle_fault case :3 \n");
+	
 	if(rsp_stack - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK){
 		vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
 		return true;
 	}
 	
 	return false;
-	// ===> 수정해보자 다음에
-	// void *rsp_stack = is_kernel_vaddr(f->rsp) ? thread_current()->rsp_stack : f->rsp;
-	// if (not_present)
-	// {
-	// 	if (!vm_claim_page(addr))
-	// 	{
-	// 		if (rsp_stack - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK)
-	// 		{
-	// 			vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
-	// 			return true;
-	// 		}
-	// 		return false;
-	// 	}
-	// 	else
-	// 		return true;
-	// }
-
-	// return false;
-	// return vm_do_claim_page (page);
 }
 
 /* Free the page.
@@ -330,35 +310,40 @@ bool vm_claim_page(void *va UNUSED)
 	
 	if (page == NULL)
 		return false;
+	
 	// printf("============ vm_claim_page \n");
 	return vm_do_claim_page(page);
 }
 
+static bool
+install_page(void *upage, void *kpage, bool writable)
+{
+	struct thread *t = thread_current();
+
+	/* Verify that there's not already a page at that virtual
+	 * address, then map our page there. */
+	return (pml4_get_page(t->pml4, upage) == NULL && pml4_set_page(t->pml4, upage, kpage, writable));
+}
+
 /* Claim the PAGE and set up the mmu. */
 static bool
-vm_do_claim_page(struct page *page)
-{
+vm_do_claim_page(struct page *page) {
+
 	struct frame *frame = vm_get_frame();
-	struct thread *cur = thread_current();
+	
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
+	
 	// 페이지 테이블 entry에 페이지 가상 주소와 프레임 물리주소를 매핑해라
-	// bool rw ???
-	// pml4_set_page(cur->pml4, page, frame, true); // 수정 필요
-	// if (install_page(page, frame, true)) //true???
-	// 	return swap_in (page, frame->kva);
-	// else
-	// 	return false;
 
-	// printf("===> %p \n", page);
-	// printf("===> %p \n", frame);
-	if (pml4_get_page(cur->pml4, page->va) == NULL && pml4_set_page(cur->pml4, page->va, frame->kva, page->writable)) // install_page()
+	if (install_page(page->va, frame->kva, page->writable)) {
 		return swap_in(page, frame->kva);
-	else
-		return false;
+	}
+	
+	return false;
 }
 
 /* Initializes hash table H to compute hash values using HASH and
