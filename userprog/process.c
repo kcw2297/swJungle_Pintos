@@ -20,7 +20,7 @@
 #include "intrinsic.h"
 
 // ===> 3-2
-// #define VM
+#define VM
 
 #ifdef VM
 #include "vm/vm.h"
@@ -79,7 +79,6 @@ initd(void *f_name)
 #endif
 
 	process_init();
-
 	if (process_exec(f_name) < 0)
 		PANIC("Fail to launch initd\n");
 	NOT_REACHED();
@@ -135,6 +134,7 @@ tid_t process_fork(const char *name, struct intr_frame *if_){
 	return pid;	// 끝나면 pid 반환
 }
 
+// ##### VM이 아니면
 #ifndef VM
 /* Duplicate the parent's address space by passing this function to the
  * pml4_for_each. This is only for the project 2. */
@@ -272,8 +272,26 @@ error:
  */
 int process_exec(void *f_name)
 {
-	char *file_name = f_name;
+	// printf("=====> process_exec : %s\n", f_name);
+	
+	char *file_name = f_name; // void *로 받은 f_name을 문자열로 인식하기 위해서 변환
 	bool success;
+
+	/* We cannot use the intr_frame in the thread structure.
+	 * This is because when current thread rescheduled,
+	 * it stores the execution information to the member. */
+	/* 실행 중인 프로세스의 레지스터 정보, 스택 포인터, instruction count를 저장하는 자료구조 */ 
+
+	/* We first kill the current context */
+	// 현재 process에 할당된 page directory를 지운다.
+
+	struct intr_frame _if;
+	_if.ds = _if.es = _if.ss = SEL_UDSEG;
+	_if.cs = SEL_UCSEG;
+	_if.eflags = FLAG_IF | FLAG_MBS;
+
+	process_cleanup(); // 새로운 실행 파일을 현재 스레드에 담기 전에 현재 process에 담긴 context 삭제
+
 	//선도
 	char copy[128];
 	memcpy(copy, file_name, strlen(file_name)+1);
@@ -281,31 +299,30 @@ int process_exec(void *f_name)
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
 	 * it stores the execution information to the member.*/
-	struct intr_frame _if;
-	_if.ds = _if.es = _if.ss = SEL_UDSEG;
-	_if.cs = SEL_UCSEG;
-	_if.eflags = FLAG_IF | FLAG_MBS;
 
-	/* We first kill the current context */
-	process_cleanup(); // 새로운 실행 파일을 현재 스레드에 담기 전에 현재 process에 담긴 context 삭제
-
-	// memset(&_if, 0, sizeof(_if)); // 필요하지 않은 레지스터까지 0으로 바꿔 "#GP General Protection Exception"; 오류 발생
-
-	// 선도
 	struct thread *curr = thread_current();
-	supplemental_page_table_init(&curr->spt);
 
-	/* And then load the binary */
-	// success = load(file_name, &_if); // f_name, if_.rip (function entry point), rsp(stack top : user stack)
-	success = load(copy, &_if);
-	/* If load failed, quit. */
-	palloc_free_page(file_name);
-	if (!success)
-		return -1;
-	// hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true); // for debugging
-	/* Start switched process. */
-	do_iret(&_if);
-	NOT_REACHED();
+	#ifdef VM
+		supplemental_page_table_init(&thread_current()->spt);
+	#endif
+
+
+		// 새로운 실행 파일을 현재 스레드에 담기 전에 먼저 현재 process에 담긴 context를 지워준다. 
+		/* And then load the binary */
+		success = load(copy, &_if);
+		// success = load(file_name, &_if);
+		// hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
+
+		/* If load failed, quit. */
+		if (!success)
+			return -1;
+		
+		
+		palloc_free_page(file_name);
+		
+		/* Start switched process. */
+		do_iret(&_if);
+		NOT_REACHED();
 }
 
 
@@ -406,7 +423,7 @@ process_cleanup(void)
 	}
 }
 
-/* Sets up the CPU for running user code in the nest thread.
+/* Sets up the CPU for running user code in the next thread.
  * This function is called on every context switch. */
 void process_activate(struct thread *next)
 {
@@ -525,6 +542,7 @@ void argument_stack(char **argv, int argc, struct intr_frame *if_)
 	memset(if_->rsp, 0, sizeof(void *));
 }
 
+
 /* Loads an ELF executable from FILE_NAME into the current thread.
  * Stores the executable's entry point into *RIP
  * and its initial stack pointer into *RSP.
@@ -539,6 +557,7 @@ load(const char *file_name, struct intr_frame *if_)
 	bool success = false;
 	int i;
 
+// ################
 	char *argv[128]; // 커맨드 라인 길이 제한 128
 	char *token, *save_ptr;
 	int argc = 0;
@@ -555,33 +574,29 @@ load(const char *file_name, struct intr_frame *if_)
 		argv[argc] = token;
 	}
 
+// #################
+
+
 	/* Allocate and activate page directory. */
 	t->pml4 = pml4_create();
 	if (t->pml4 == NULL)
 		goto done;
+	
 	process_activate(t);
 
-	/* 락 획득 */
-	// lock_acquire(&file_lock);
 	/* Open executable file. */
 	file = filesys_open(file_name);
 	// printf("===> filesys_open : %s\n", file_name);
 
 	if (file == NULL)
 	{
-		/* 락 해제 */
-		// lock_release(&file_lock);
 		printf("load: %s: open failed\n", file_name);
 		goto done;
-		// exit(-1);
 	}
 
-	/* thread 구조체의 run_file을 현재 실행할 파일로 초기화 */ 
-	t->run_file = file;
-	/* file_deny_write()를 이용하여 파일에 대한 write를 거부 */ 
-	file_deny_write(file);
-	/* 락 해제 */
-	// lock_release(&file_lock);
+	/* Project 2-5. Deny writes to running exec */
+	t->run_file = file;	// hread 구조체의 run_file을 현재 실행할 파일로 초기화
+	file_deny_write(file); // file_deny_write()를 이용하여 파일에 대한 write를 거부
 
 	/* Read and verify executable header. */
 	if (file_read(file, &ehdr, sizeof ehdr) != sizeof ehdr || memcmp(ehdr.e_ident, "\177ELF\2\1\1", 7) || ehdr.e_type != 2 || ehdr.e_machine != 0x3E // amd64
@@ -656,9 +671,11 @@ load(const char *file_name, struct intr_frame *if_)
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
 
+// ############
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 	argument_stack(argv, argc, if_);
+// ############
 
 	success = true;
 
@@ -818,6 +835,8 @@ install_page(void *upage, void *kpage, bool writable)
 	 * address, then map our page there. */
 	return (pml4_get_page(t->pml4, upage) == NULL && pml4_set_page(t->pml4, upage, kpage, writable));
 }
+
+
 #else
 /* From here, codes will be used after project 3.
  * If you want to implement the function for only project 2, implement it on the
@@ -828,7 +847,7 @@ lazy_load_segment(struct page *page, void *aux)
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
-	struct file *file = ((struct container *)aux)->file;
+	struct container *file = ((struct container *)aux)->file;	// 변경 사항 
 	off_t offsetof = ((struct  container *)aux)->offset;
 	size_t page_read_bytes = ((struct container *)aux)->page_read_bytes;
 	size_t page_zero_bytes = PGSIZE - page_read_bytes;

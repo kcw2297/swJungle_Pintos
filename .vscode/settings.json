@@ -19,6 +19,7 @@
         "file.h": "c",
         "filesys.h": "c",
         "stdlib.h": "c",
-        "mmu.h": "c"
+        "mmu.h": "c",
+        "stddef.h": "c"
     }
 }
