@@ -65,9 +65,6 @@ static struct frame *vm_evict_frame(void);
 bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writable,
 									vm_initializer *init, void *aux)
 {	
-	// printf("va: %p\n",upage);
-	// 8번의 enter, 0x400000~0x4747f000, 이후 다시 0x400000로 시작
-
 	ASSERT(VM_TYPE(type) != VM_UNINIT)
 
 	struct supplemental_page_table *spt = &thread_current()->spt;
@@ -85,10 +82,9 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 			uninit_new(page, upage, init, type, aux, NULL);
 		}
 
-		//페이지 구조가 있으면 프로세스의 추가 페이지 테이블에 페이지를 삽입하십시오.
 		page->writable = writable;
-		/* TODO: Insert the page into the spt.
-		 페이지를 SPT에 삽입합니다.*/
+
+		/* TODO: Insert the page into the spt.*/
 		return spt_insert_page(spt, page);
 	}
 err:
