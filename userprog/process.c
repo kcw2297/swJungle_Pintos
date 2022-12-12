@@ -847,7 +847,7 @@ lazy_load_segment(struct page *page, void *aux)
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
-	struct container *file = ((struct container *)aux)->file;	// 변경 사항 
+	struct file *file = ((struct container *)aux)->file;	// 변경 사항 
 	off_t offsetof = ((struct  container *)aux)->offset;
 	size_t page_read_bytes = ((struct container *)aux)->page_read_bytes;
 	size_t page_zero_bytes = PGSIZE - page_read_bytes;
