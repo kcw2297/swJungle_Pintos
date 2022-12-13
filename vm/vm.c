@@ -368,65 +368,39 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 	 * uninit 페이지를 할당하고 즉시 요청해야 합니다.
 	 * src 의 spt 에 있는 각 페이지를 반복하며 dst의 spt에 정확한 복사본을 만든다
 	 */
-	struct hash_iterator i;					// 
+	
+	struct hash_iterator i;					
     hash_first (&i, &src->hash_tb); 		// i가 head를 가리킴
     while (hash_next (&i)) {				// i가 다음 elem이 된다.  시작 src의 각각의 페이지를 반복문을 통해 복사
         struct page *parent_page = hash_entry (hash_cur (&i), struct page, h_elem);   // 현재 해시 테이블의 element 리턴
-        enum vm_type type = page_get_type(parent_page);		// 부모 페이지의 type
-        void *upage = parent_page->va;						// 부모 페이지의 가상 주소
-        bool writable = parent_page->writable;				// 부모 페이지의 쓰기 가능 여부
-        vm_initializer *init = parent_page->uninit.init;	// 부모의 초기화되지 않은 페이지들 할당 위해 
-        void* aux = parent_page->uninit.aux;
 
-        if (parent_page->uninit.type & VM_MARKER_0) {			// VM_MARKER_0 는 stack을 의미
-			// printf("======> VM_MARKER_0 \n");
-			// printf("=====> %d \n", parent_page->uninit.type);
-            setup_stack(&thread_current()->tf);
+        // enum vm_type type = page_get_type(parent_page);		// 부모 페이지의 type
+        // void *upage = parent_page->va;						// 부모 페이지의 가상 주소
+        // bool writable = parent_page->writable;				// 부모 페이지의 쓰기 가능 여부
+        // vm_initializer *init = parent_page->uninit.init;	// 부모의 초기화되지 않은 페이지들 할당 위해 
+        // void* aux = parent_page->uninit.aux;
+		
+        if(parent_page->operations->type == VM_UNINIT) {
+        	if(!vm_alloc_page_with_initializer(parent_page->uninit.type,
+												parent_page->va, 
+												parent_page->writable,
+												parent_page->uninit.init,
+												parent_page->uninit.aux))
+            	return false;
         }
-        else if(parent_page->operations->type == VM_UNINIT) {	// 부모 타입이 uninit인 경우
-			// printf("======> VM_UNINIT \n");
-            if(!vm_alloc_page_with_initializer(type, upage, writable, init, aux))
-                return false;
-        }
+
         else {
-			// printf("======> else \n");
-			// printf("=====> %d \n", parent_page->uninit.type);
-            if(!vm_alloc_page(type, upage, writable))
+            if(!vm_alloc_page(parent_page->operations->type, parent_page->va, parent_page->writable))
                 return false;
-            if(!vm_claim_page(upage))
-                return false;
-        }
 
-        if (parent_page->operations->type != VM_UNINIT) {   // UNIT이 아닌 모든 페이지(stack 포함)는 부모의 것을 memcpy
-            struct page* child_page = spt_find_page(dst, upage);
+            if(!vm_claim_page(parent_page->va))
+                return false;
+
+			struct page* child_page = spt_find_page(dst, parent_page->va);
             memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE);
         }
     }
     return true;
-
-	// // memcpy(&if_, &parent->parent_if, sizeof(struct intr_frame));
-	// bool success = false;
-	// // success = vm_alloc_page(VM_ANON, &thread_current()->rsp_stack, 1);
-	// // if(success)
-	// // memcpy(&dst->hash_tb, &src->hash_tb, sizeof(struct hash));
-	
-	// struct list_elem dstp = list_begin(dst->hash_tb.buckets);
-	// for (struct list_elem start = list_begin(src->hash_tb.buckets);
-	// 	 start != list_end(src->hash_tb.buckets);
-	// 	 start = list_next(start))
-	// {
-	// 	success = vm_alloc_page(VM_ANON, &thread_current()->rsp_stack, 1);
-	// 	if(!success)
-	// 		return false;
-	// 	// list bucket = 어떤함수(start, hash_elem, elem)
-	// 	// for (){}
-	// 	struct hash_elem *start_hash = list_elem_to_hash_elem(start);
-	// 	struct page * page = hash_entry(start_hash, struct page, hash_elem);
-	// 	memcpy(dstp, start, sizeof(struct page));
-
-	// 	dstp = list_next(dstp);
-		
-	// }
 }
 
 void spt_destructor(struct hash_elem *e, void* aux) {
