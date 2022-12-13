@@ -156,12 +156,15 @@ pml4_for_each (uint64_t *pml4, pte_for_each_func *func, void *aux) {
 	return true;
 }
 
+// pml4 destroy 할 때, process_cleanup에서 삭제하고 다음 프로세스 넘어가는데
+// 포크는 원본을 가리켜야 하니까 삭제하면 안 된다.
+// 그래서 주석 처리
 static void
 pt_destroy (uint64_t *pt) {
 	for (unsigned i = 0; i < PGSIZE / sizeof(uint64_t *); i++) {
 		uint64_t *pte = ptov((uint64_t *) pt[i]);
-		if (((uint64_t) pte) & PTE_P)
-			palloc_free_page ((void *) PTE_ADDR (pte));
+		// if (((uint64_t) pte) & PTE_P)
+		// 	palloc_free_page ((void *) PTE_ADDR (pte));
 	}
 	palloc_free_page ((void *) pt);
 }
