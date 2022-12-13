@@ -247,17 +247,24 @@ vm_get_frame(void)
 static void
 vm_stack_growth(void *addr UNUSED)
 {
-	if(vm_alloc_page(VM_ANON | VM_MARKER_0, addr, 1))
+	void *pg_addr = pg_round_down(addr);
+	while(vm_alloc_page(VM_ANON | VM_MARKER_0, addr, 1))
     {
-        vm_claim_page(addr);
-        thread_current()->stack_bottom -= PGSIZE;   // 스택은 위에서부터 쌓기 때문에 주소값 위치를 페이지 사이즈씩 마이너스함
+		vm_claim_page(pg_addr);
+        pg_addr += PGSIZE;   // 스택은 위에서부터 쌓기 때문에 주소값 위치를 페이지 사이즈씩 마이너스함
     }
 }
 
 /* Handle the fault on write_protected page */
 static bool
-vm_handle_wp(struct page *page UNUSED)
+vm_handle_wp(struct page *page UNUSED)	// 포크한 자식에게 쓰기 요청이 들어오면 (cow) 사본을 만들어준다.
 {
+	void *parent_kva = page->frame->kva;	// 자식 페이지의 원본을 보존
+	page->frame->kva = palloc_get_page(PAL_USER);	// 자식 페이지는 새로 palloc
+	memcpy(page->frame->kva, parent_kva, PGSIZE);
+	pml4_set_page(thread_current()->pml4, page->va, page->frame->kva, page->copy_writable);
+
+	return true;
 }
 
 /* Return true on success */
@@ -265,29 +272,52 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 						 bool user UNUSED, bool write UNUSED, bool not_present UNUSED)
 {
 	struct supplemental_page_table *spt = &thread_current()->spt;
-	// struct page *page = NULL;
+	struct page *page = NULL;
+	
 
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
-	if (is_kernel_vaddr(addr))
+	if (is_kernel_vaddr(addr) && user) // user가 감히 접근해? 커널이 접근해야지
 	{
 		return false;
 	}
 
-	void *rsp_stack = is_kernel_vaddr(f->rsp) ? thread_current()->rsp_stack : f->rsp;
-	
-	if(!not_present)
-		return false;
+	void *rsp_stack;
 
-	if(vm_claim_page(addr))
-		return true;
+	if (user)
+		rsp_stack = is_kernel_vaddr(f->rsp) ? thread_current()->rsp_stack : f->rsp;
 	
-	if(rsp_stack - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK){
-		vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
-		return true;
+	page = spt_find_page(spt, addr);
+	
+	// cow
+	if (write && !not_present && page->copy_writable && page)
+	{
+		return vm_handle_wp(page);
+	}
+
+	if (page == NULL)
+	{
+		if(write && pg_round_down(rsp_stack - PGSIZE) <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK){
+			vm_stack_growth(addr);
+			return true;
+		}
+		else
+			return false;
 	}
 	
+	if (write && !page->writable)
+		return false;
+
+	if(vm_do_claim_page(page))
+		return true;
+	
 	return false;
+	
+	// if(write && rsp_stack - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK){
+	// 	vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
+	// 	return true;
+	// }
+
 }
 
 /* Free the page.
@@ -389,15 +419,30 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
             	return false;
         }
 
-        else {
+        else if (parent_page->operations->type == VM_ANON) {
             if(!vm_alloc_page(parent_page->operations->type, parent_page->va, parent_page->writable))
                 return false;
+			struct page* child_page = spt_find_page(dst, parent_page->va);
+			if (child_page == NULL)
+				return false;
+			child_page->copy_writable = parent_page->copy_writable; // fork 했음을 알리는 flag, 원본을 가리키고 있는데 writable이야
+            struct frame *child_frame = malloc(sizeof(struct frame));
+			child_page->frame = child_frame;
+			child_frame->page = child_page;
+			child_frame->kva = parent_page->frame->kva;
+			// child_page->frame = parent_page->frame; 안 된다
 
-            if(!vm_claim_page(parent_page->va))
+			list_push_back(&frame_table, &child_frame->frame_elem);
+
+			if (!(pml4_set_page(thread_current()->pml4, child_page->va, child_frame->kva, 0)))
+				return false;
+			
+			// swap_in(child_page, child_frame->kva);
+
+			if(!vm_claim_page(parent_page->va))
                 return false;
 
-			struct page* child_page = spt_find_page(dst, parent_page->va);
-            memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE);
+            // memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE);
         }
     }
     return true;
