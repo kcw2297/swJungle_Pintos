@@ -425,37 +425,30 @@ struct file *process_get_file(int fd) {
 
 
 void 
-*mmap (void *addr, size_t length, int writable, int fd, off_t offset){
-	if(offset % PGSIZE != 0){        // offset이 페이지 시작점에 있어야한다
+*mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
+	if (offset % PGSIZE != 0){        // offset이 페이지 시작점에 있어야한다
 		return NULL;
 	} 
 
-	if(pg_round_down(addr) != addr 
+	if (pg_round_down(addr) != addr 
 		|| is_kernel_vaddr(addr) 
 		|| addr == NULL
 		|| (long long)length <= 0)
 		return NULL;
 	
-	if(fd < 2)
+	if (fd < 2)
 		exit(-1);
 
-	if(	spt_find_page(&thread_current()->spt, addr) )
+	if (spt_find_page(&thread_current()->spt, addr))
 		return NULL;
 
-	// if(length == 0 
-	// 	|| (uint64_t)addr % PGSIZE 
-	// 	|| 	spt_find_page(&thread_current()->spt, addr) 
-	// 	|| addr == 0 
-	// 	|| fd < 2)
-	// 	return;
-	// if(addr == NULL){
-	// 	addr = palloc_get_page(PAL_USER|PAL_ZERO);
-	// }
 	struct file * target = process_get_file(fd);
 
-	if(target == NULL)
+	if (target == NULL)
 		return NULL;
-	void *ret = do_mmap(addr, length, writable, target, offset);	
+
+	void *ret = do_mmap (addr, length, writable, target, offset);
+
 	return ret;
 }
 

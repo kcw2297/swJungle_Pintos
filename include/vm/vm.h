@@ -51,6 +51,7 @@ struct page {
 	// #####1
 	struct hash_elem h_elem;
 	bool writable;
+	bool copy_writable;
 
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */

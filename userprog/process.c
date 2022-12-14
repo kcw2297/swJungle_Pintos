@@ -122,7 +122,8 @@ tid_t process_fork(const char *name, struct intr_frame *if_){
 	struct thread *cur = thread_current();
 	memcpy(&cur->parent_if, if_, sizeof(struct intr_frame)); //  parent_if에는 유저 스택 정보 담기
 	/* 자식 프로세스 생성 */
-	tid_t pid = thread_create(name, PRI_DEFAULT, __do_fork, cur); // process_fork의 인자로 받은 name으로 __do_fork() 진행
+	// tid_t pid = thread_create(name, cur->priority + 1, __do_fork, cur); // process_fork의 인자로 받은 name으로 __do_fork() 진행
+	tid_t pid = thread_create(name, cur->priority+1, __do_fork, cur); // process_fork의 인자로 받은 name으로 __do_fork() 진행
 	if (pid == TID_ERROR){
 		return TID_ERROR;
 	}
@@ -419,7 +420,7 @@ process_cleanup(void)
 		 * that's been freed (and cleared). */
 		curr->pml4 = NULL;
 		pml4_activate(NULL);
-		pml4_destroy(pml4);
+		pml4_destroy(pml4);	// pt_destroy 주석 처리
 	}
 }
 

@@ -140,7 +140,13 @@ page_fault (struct intr_frame *f) {
 	write = (f->error_code & PF_W) != 0;
 	user = (f->error_code & PF_U) != 0;
 
+
 #ifdef VM
+	if(user) {	// 
+		//fault가 난 시점에, rsp가 무엇인가. f->rsp가 가장 최신 rsp 이므로
+		// if_ 의 rsp는 cpu가 관여
+		thread_current()->rsp_stack = f->rsp;
+	}
 	/* For project 3 and later. */
 	if (vm_try_handle_fault (f, fault_addr, user, write, not_present))
 		return;
