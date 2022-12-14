@@ -142,17 +142,27 @@ fat_boot_create (void) {
 	    / (DISK_SECTOR_SIZE / sizeof (cluster_t) * SECTORS_PER_CLUSTER + 1) + 1;
 	fat_fs->bs = (struct fat_boot){
 	    .magic = FAT_MAGIC,
-	    .sectors_per_cluster = SECTORS_PER_CLUSTER,
-	    .total_sectors = disk_size (filesys_disk),
-	    .fat_start = 1,
+	    .sectors_per_cluster = SECTORS_PER_CLUSTER,	// 1
+	    .total_sectors = disk_size (filesys_disk),	// 디스크에 있는 섹터의 개수
+	    .fat_start = 1,	
 	    .fat_sectors = fat_sectors,
 	    .root_dir_cluster = ROOT_DIR_CLUSTER,
 	};
 }
 
+
+
+/*
+ * FAT 파일 시스템을 초기화합니다.
+ * fat_length 및 data_start 필드의 fat_length를 초기화해야 합니다.
+ * fat_length는 파일 시스템의 클러스터 수를 저장하고 data_start 저장소는 파일 저장을 시작할 수 있는 섹터가 저장됩니다.
+ * fat_fs->bs에 저장된 일부 값을 이용할 수 있습니다. 또한 이 기능에서 다른 유용한 데이터를 초기화할 수도 있습니다.
+ */
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
+	fat_fs->fat_length = fat_fs->bs.total_sectors / fat_fs->bs.sectors_per_cluster;	// 파일 시스템의 클러스터 수
+	fat_fs->data_start = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -165,6 +175,22 @@ fat_fs_init (void) {
 cluster_t
 fat_create_chain (cluster_t clst) {
 	/* TODO: Your code goes here. */
+
+cluster_t new_clst = 0;
+
+if (clst == 0) {
+
+
+}
+
+new_clst = fat_get(clst);
+
+fat_fs->last_clst = fat_fs->last_clst+1;
+
+fat_put(fat_fs->last_clst, new_clst);
+
+return fat_fs->last_clst;
+
 }
 
 /* Remove the chain of clusters starting from CLST.
@@ -178,12 +204,16 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
 void
 fat_put (cluster_t clst, cluster_t val) {
 	/* TODO: Your code goes here. */
+	fat_fs->fat[clst] = val;
 }
 
 /* Fetch a value in the FAT table. */
 cluster_t
 fat_get (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	if (fat_fs->fat[clst])
+		return fat_fs->fat[clst];
+	return 0;
 }
 
 /* Covert a cluster # to a sector number. */
