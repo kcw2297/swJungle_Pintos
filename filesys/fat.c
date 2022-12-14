@@ -179,8 +179,7 @@ fat_create_chain (cluster_t clst) {
 cluster_t new_clst = 0;
 
 if (clst == 0) {
-
-
+fat_fs->fat = (int*)calloc(fat_fs->fat_length, sizeof(int));
 }
 
 new_clst = fat_get(clst);
