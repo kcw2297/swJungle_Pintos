@@ -20,6 +20,7 @@
         "filesys.h": "c",
         "stdlib.h": "c",
         "mmu.h": "c",
-        "stddef.h": "c"
+        "stddef.h": "c",
+        "disk.h": "c"
     }
 }
