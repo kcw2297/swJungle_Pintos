@@ -238,3 +238,9 @@ cluster_to_sector (cluster_t clst) {
 	/* TODO: Your code goes here. */
 	return fat_fs->data_start+clst;
 }
+
+cluster_t
+sector_to_cluster (disk_sector_t sector) {
+	/* TODO: Your code goes here. */
+	return sector - fat_fs->data_start;
+}

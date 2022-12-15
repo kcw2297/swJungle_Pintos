@@ -46,7 +46,8 @@ byte_to_sector (const struct inode *inode, off_t pos) {
 	if (pos < inode->data.length)
 		return inode->data.start + pos / DISK_SECTOR_SIZE;
 	else
-		return -1;
+		memset(inode->data.length, 0, pos - inode->data.length);
+		return inode->data.start + pos / DISK_SECTOR_SIZE;
 }
 
 /* List of open inodes, so that opening a single inode twice
@@ -255,6 +256,10 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 		if (chunk_size <= 0)
 			break;
 
+		// 앞에 chunk_size 크기 계산 -----------------------
+		if(chunk_size > 0)
+		fat_create_chain(sector_to_cluster(sector_idx));
+		// ----------------------------------------------
 		if (sector_ofs == 0 && chunk_size == DISK_SECTOR_SIZE) {
 			/* Write full sector directly to disk. */
 			disk_write (filesys_disk, sector_idx, buffer + bytes_written); 
