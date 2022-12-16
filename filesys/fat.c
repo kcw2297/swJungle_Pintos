@@ -154,7 +154,7 @@ void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
 	// fat_fs->fat_length = fat_fs->bs.total_sectors - fat_fs->bs.fat_sectors;
-	fat_fs->fat_length = fat_fs->bs.fat_sectors * DISK_SECTOR_SIZE / (sizeof(cluster_t)) * SECTORS_PER_CLUSTER;
+	fat_fs->fat_length = fat_fs->bs.fat_sectors * DISK_SECTOR_SIZE / (sizeof(cluster_t) * SECTORS_PER_CLUSTER);
 	fat_fs->data_start = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors; // ##### 1
 	// fat_fs->last_clst = fat_fs->bs.fat_sectors / SECTORS_PER_CLUSTER;
 	// fat_fs->last_clst = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors;
@@ -176,21 +176,44 @@ fat_create_chain (cluster_t clst) {
 	// 	fat_put(fat_fs->last_clst, clst);
 	// }
 	// return 0;
-	cluster_t i = 2;
-	while (fat_get(i) != 0 && i < fat_fs->fat_length) {
-		++i;
-	}
-	if (i == fat_fs->fat_length) {	// FAT가 가득 찼다면
+	// cluster_t i = 2;
+	// while (fat_get(i) != 0 && i < fat_fs->fat_length) {
+	// 	++i;
+	// }
+	// if (i == fat_fs->fat_length) {	// FAT가 가득 찼다면
+	// 	return 0;
+	// }
+	// fat_put(i, EOChain);	// FAT안의 값 업데이트
+	// if (clst == 0) {	// 새로운 체인 생성
+	// 	return i;
+	// }
+	// while(fat_get(clst) != EOChain) {
+	// 	clst = fat_get(clst);
+	// }
+	// fat_put(clst, i);
+	// return i;
+
+	int i;
+	for (i = 2; i < fat_fs->fat_length && fat_get(i) > 0; i++)
+		;
+
+	/* empty cluster가 없으면 */
+	if (i >= fat_fs->fat_length)
 		return 0;
-	}
-	fat_put(i, EOChain);	// FAT안의 값 업데이트
-	if (clst == 0) {	// 새로운 체인 생성
+
+	/* empty cluster에 새로운 cluster 생성 */
+	fat_put(i, EOChain);
+
+	/* 새로운 cluster chain일 때 */
+	if (clst == 0)
 		return i;
-	}
-	while(fat_get(clst) != EOChain) {
-		clst = fat_get(clst);
-	}
-	fat_put(clst, i);
+
+	/* 기존 cluster chain의 마지막에 추가할 때 */
+	cluster_t temp_c;
+	for (temp_c = clst; fat_get(temp_c) != EOChain; temp_c = fat_get(temp_c))
+		;
+	fat_put(temp_c, i);
+
 	return i;
 }
 

@@ -103,11 +103,11 @@ void fsutil_put(char **argv)
 	size = ((int32_t *)buffer)[1];
 	if (size < 0)
 		PANIC("%s: invalid file size %d", file_name, size);
-
+	// printf("===============> before filesys_create\n");
 	/* Create destination file. */
 	if (!filesys_create(file_name, size))
 		PANIC("%s: create failed", file_name);
-
+	// printf("===============> after filesys_create\n");
 	dst = filesys_open(file_name);
 	if (dst == NULL)
 		PANIC("%s: open failed", file_name);
@@ -138,7 +138,7 @@ void fsutil_put(char **argv)
  * The first call to this function will write starting at the
  * beginning of the scratch disk.  Later calls advance across the
  * disk.  This disk position is independent of that used for
- * fsutil_put(), so all `put's should precede all `get's. */
+ * (), so all `put's should precede all `get's. */
 void fsutil_get(char **argv)
 {
 	static disk_sector_t sector = 0;

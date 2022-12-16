@@ -68,11 +68,11 @@ bool filesys_create(const char *name, off_t initial_size)
 	disk_sector_t inode_sector = cluster_to_sector(inode_cluster);
 
 	struct dir *dir = dir_open_root();
-	bool success = (dir != NULL
+	bool success = (dir != NULL && inode_create(inode_sector, initial_size, INODE_FILE) && dir_add(dir, name, inode_sector));
 					// && free_map_allocate (1, &inode_sector)
 					// && fat_create_chain(0)
-					&& inode_create(inode_sector, initial_size, INODE_FILE) && dir_add(dir, name, inode_sector));
-
+					
+	
 	if (!success && inode_sector != 0)
 		// free_map_release (inode_sector, 1);
 		fat_remove_chain(inode_cluster, 0);

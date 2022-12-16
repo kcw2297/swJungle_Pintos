@@ -54,7 +54,8 @@ dir_open(struct inode *inode)
 struct dir * // ##### sector -> clst
 dir_open_root(void)
 {
-	return dir_open(inode_open(cluster_to_sector(ROOT_DIR_CLUSTER)));
+	disk_sector_t root = cluster_to_sector(ROOT_DIR_CLUSTER);
+	return dir_open(inode_open(root));
 }
 
 /* Opens and returns a new directory for the same inode as DIR.
