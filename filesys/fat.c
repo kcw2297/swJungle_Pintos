@@ -166,33 +166,76 @@ fat_fs_init (void) {
 /* Add a cluster to the chain.
  * If CLST is 0, start a new chain.
  * Returns 0 if fails to allocate a new cluster. */
+// cluster_t
+// fat_create_chain (cluster_t clst) {
+// 	/* TODO: Your code goes here. */
+
+// 	/*
+// 	1. 빈 공간 찾기
+// 	2. 빈 공간 찾아서 eoc 넣기 (빈 곳에 넣기)
+// 	3. clst == 0 이라면, 여기서 끝
+// 	4. clst != 0 이라면, 여기서 끝이 아니라, 마지막 eoc와 연결시켜주기
+// 	5. 
+// 	*/
+
+// 	cluster_t i = 2;
+
+// 	for(i = 2; i < fat_fs->fat_length; i++) {
+// 		if(fat_get(i) == 0) {
+// 			fat_put(i, EOChain);
+// 		}
+// 	}
+
+// 	// if (i == fat_fs->last_clst)	// 빈 자리 없으면 fail
+// 	// 	return 0;
+
+// 	if (clst == 0)	// 새로운 클러스터 생성
+// 		return i;
+	
+// 	else 
+// 		fat_put(clst, i);
+// 		return i;
+
+// }
 cluster_t
 fat_create_chain (cluster_t clst) {
 	/* TODO: Your code goes here. */
-	// if (fat_get(clst) == 0){
-	// 	fat_put(fat_fs->last_clst, clst);
-	// }
-	// return 0;
-	cluster_t i = 2;
-	while (fat_get(i) != 0 && i < fat_fs->fat_length) {
-		++i;
-	}
-	// 2부터 탐색해서 빈 자리 찾는다
+	// clst(클러스터 인덱싱 번호)로 특정된 클러스터의 뒤에 클러스터를 추가하여 체인을 확장함
+	// 새로 할당된 클러스터의 번호를 반환합니다.
 
-	if (i == fat_fs->fat_length) {	// FAT가 가득 찼다면
-		return 0;
+	// clst가 0이면, 새 체인을 만든다 
+	if (clst == 0) {
+		// fat에서 값이 0인(빈) 클러스터를 찾아서 새로 체인을 만든다.
+		// for (cluster_t i = fat_fs->bs.fat_start; i<fat_fs->fat_length; i++) {// i는 1부터 fat_length만큼 
+		for (cluster_t i = 2; i<fat_fs->fat_length; i++) {// i는 2부터 fat_length만큼 
+			if (fat_get(i) == 0) {	
+				fat_put(i, EOChain);
+				return i;
+			}
+		}
 	}
 
-	fat_put(i, EOChain);	// FAT안의 값 업데이트, 빈 자리에 EOC 넣는다
+	// clst가 0이 아니면, clst 클러스터 뒤에 클러스터를 추가한다. 
+	else {		
+		// clst 클러스터는 항상 마지막 클러스터이어야 함
+		cluster_t next_clst_idx = fat_get(clst);	
+		if (next_clst_idx != EOChain) {	
+			return 0;
+		}
 
-	if (clst == 0) {	// 새로운 체인 생성
-		return i;
+		// 빈 클러스터 찾기
+		cluster_t new_clst; 
+		for (int i = fat_fs->bs.fat_start; i<fat_fs->fat_length; i++) {
+			if (fat_get(i) == 0) {	
+				new_clst = i;
+				break;
+			}
+		}
+		// clst 클러스터 뒤에 클러스터를 추가
+		fat_put(clst, new_clst);
+		fat_put(new_clst, EOChain);
+		return new_clst;	// 새로 할당된 클러스터의 번호를 반환
 	}
-	while(fat_get(clst) != EOChain) {
-		clst = fat_get(clst);
-	}
-	fat_put(clst, i);
-	return i;
 }
 
 /* Remove the chain of clusters starting from CLST.

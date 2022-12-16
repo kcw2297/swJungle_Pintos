@@ -74,53 +74,43 @@ void inode_init(void)
  * disk.
  * Returns true if successful.
  * Returns false if memory or disk allocation fails. */
-bool inode_create(disk_sector_t sector, off_t length)
-{
+bool
+inode_create (disk_sector_t sector, off_t length) {
 	struct inode_disk *disk_inode = NULL;
 	bool success = false;
 
-	ASSERT(length >= 0);
+	ASSERT (length >= 0);
 
 	/* If this assertion fails, the inode structure is not exactly
 	 * one sector in size, and you should fix that. */
-	ASSERT(sizeof *disk_inode == DISK_SECTOR_SIZE);
+	ASSERT (sizeof *disk_inode == DISK_SECTOR_SIZE);
 
-	disk_inode = calloc(1, sizeof *disk_inode);
-	if (disk_inode != NULL)
-	{
-		size_t sectors = bytes_to_sectors(length);
+	disk_inode = calloc (1, sizeof *disk_inode);
+	if (disk_inode != NULL) {
+		size_t sectors = bytes_to_sectors (length);
 		disk_inode->length = length;
 		disk_inode->magic = INODE_MAGIC;
-		disk_inode->start = sector;
-		cluster_t next_clst;
+		cluster_t clst = fat_create_chain(0);
 
-		fat_create_chain(sector_to_cluster(&disk_inode->start);
-		next_clst = fat_create_chain(sector_to_cluster(0));
-		fat_create_chain(next_clst); 
-
-		if (fat_create_chain(sector_to_cluster(&disk_inode->start))
-		
-		{ 
+		if (clst) {
+			disk_inode->start = cluster_to_sector(clst);
+			disk_write (filesys_disk, sector, disk_inode);
 			
-			
-			for (sector) {
+			if (sectors > 0) {
 
-			sector = cluster_to_sector (fat_get(start));
-
-			disk_write(filesys_disk, sector, disk_inode);
-			
-			if (sectors > 0)
-			{
-				static char zeros[DISK_SECTOR_SIZE];
 				size_t i;
+				static char zeros[DISK_SECTOR_SIZE];
 
-				for (i = 0; i < sectors; i++)
-					disk_write(filesys_disk, disk_inode->start + i, zeros);
+				// =====> disk_write와 fat_create_chain 자리 교환
+				for (i = 0; i < sectors; i++) {
+					clst = fat_create_chain(clst);
+					// disk_write (filesys_disk, disk_inode->start + i, zeros); 
+					disk_write (filesys_disk, cluster_to_sector(clst), zeros); 
+				}
 			}
-			success = true;
-			}
-		}
-		free(disk_inode);
+			success = true; 
+		} 
+		free (disk_inode);
 	}
 	return success;
 }
