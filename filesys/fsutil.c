@@ -138,7 +138,7 @@ void fsutil_put(char **argv)
  * The first call to this function will write starting at the
  * beginning of the scratch disk.  Later calls advance across the
  * disk.  This disk position is independent of that used for
- * (), so all `put's should precede all `get's. */
+ * fsutil_put(), so all `put's should precede all `get's. */
 void fsutil_get(char **argv)
 {
 	static disk_sector_t sector = 0;

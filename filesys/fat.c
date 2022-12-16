@@ -176,44 +176,21 @@ fat_create_chain (cluster_t clst) {
 	// 	fat_put(fat_fs->last_clst, clst);
 	// }
 	// return 0;
-	// cluster_t i = 2;
-	// while (fat_get(i) != 0 && i < fat_fs->fat_length) {
-	// 	++i;
-	// }
-	// if (i == fat_fs->fat_length) {	// FAT가 가득 찼다면
-	// 	return 0;
-	// }
-	// fat_put(i, EOChain);	// FAT안의 값 업데이트
-	// if (clst == 0) {	// 새로운 체인 생성
-	// 	return i;
-	// }
-	// while(fat_get(clst) != EOChain) {
-	// 	clst = fat_get(clst);
-	// }
-	// fat_put(clst, i);
-	// return i;
-
-	int i;
-	for (i = 2; i < fat_fs->fat_length && fat_get(i) > 0; i++)
-		;
-
-	/* empty cluster가 없으면 */
-	if (i >= fat_fs->fat_length)
+	cluster_t i = 2;
+	while (fat_get(i) != 0 && i < fat_fs->fat_length) {
+		++i;
+	}
+	if (i == fat_fs->fat_length) {	// FAT가 가득 찼다면
 		return 0;
-
-	/* empty cluster에 새로운 cluster 생성 */
-	fat_put(i, EOChain);
-
-	/* 새로운 cluster chain일 때 */
-	if (clst == 0)
+	}
+	fat_put(i, EOChain);	// FAT안의 값 업데이트
+	if (clst == 0) {	// 새로운 체인 생성
 		return i;
-
-	/* 기존 cluster chain의 마지막에 추가할 때 */
-	cluster_t temp_c;
-	for (temp_c = clst; fat_get(temp_c) != EOChain; temp_c = fat_get(temp_c))
-		;
-	fat_put(temp_c, i);
-
+	}
+	while(fat_get(clst) != EOChain) {
+		clst = fat_get(clst);
+	}
+	fat_put(clst, i);
 	return i;
 }
 
@@ -227,29 +204,29 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
 	// }
 	// fat_put(clst-1, pclst);
 
-	// cluster_t next;
-	// while(fat_fs->fat[clst] != EOChain) {
-	// 	next = fat_fs->fat[clst];
-	// 	fat_fs->fat[clst] = 0;
-	// 	clst = next;
-	// }
-	// if(pclst != 0)
-	// 	fat_fs->fat[pclst] = EOChain;
-	
-	/* pcluster가 입력됬으면 pcluster를 chain으로 끝으로 만듬 */
-	if (pclst)
-		fat_put(pclst, EOChain);
-
-	/* clst부터 순회하면서 FAT에서 할당 해제 */
-	cluster_t temp_c = clst;
-	cluster_t next_c;
-	for (; fat_get(temp_c) != EOChain; temp_c = next_c)
-	{
-		next_c = fat_get(temp_c);
-		fat_put(temp_c, 0);
+	cluster_t next;
+	while(fat_fs->fat[clst] != EOChain) {
+		next = fat_fs->fat[clst];
+		fat_fs->fat[clst] = 0;
+		clst = next;
 	}
+	if(pclst != 0)
+		fat_fs->fat[pclst] = EOChain;
+	
+	// /* pcluster가 입력됬으면 pcluster를 chain으로 끝으로 만듬 */
+	// if (pclst)
+	// 	fat_put(pclst, EOChain);
 
-	fat_put(temp_c, 0);
+	// /* clst부터 순회하면서 FAT에서 할당 해제 */
+	// cluster_t temp_c = clst;
+	// cluster_t next_c;
+	// for (; fat_get(temp_c) != EOChain; temp_c = next_c)
+	// {
+	// 	next_c = fat_get(temp_c);
+	// 	fat_put(temp_c, 0);
+	// }
+
+	// fat_put(temp_c, 0);
 }
 
 /* Update a value in the FAT table. */
