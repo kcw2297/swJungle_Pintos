@@ -191,7 +191,8 @@ void inode_close(struct inode *inode)
 			fat_remove_chain(sector_to_cluster(inode->sector), 0);
 			fat_remove_chain(sector_to_cluster(inode->data.start), 0);
 		}
-
+		// 파일을 닫으면서, inode에 변경된 데이터 쓰기
+		disk_write(filesys_disk, inode->sector, &inode->data);
 		free(inode);
 	}
 }
