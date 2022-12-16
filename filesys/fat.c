@@ -153,12 +153,9 @@ fat_boot_create (void) {
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
-	// fat_fs->fat_length = fat_fs->bs.total_sectors / SECTORS_PER_CLUSTER;
-	fat_fs->fat_length = fat_fs->bs.fat_sectors * DISK_SECTOR_SIZE / (sizeof(cluster_t)) * SECTORS_PER_CLUSTER;
-	// fat_fs->data_start = fat_fs->bs.fat_start + 1; // ##### 1
-	// fat_fs->last_clst = fat_fs->bs.fat_sectors / SECTORS_PER_CLUSTER;
+	fat_fs->fat_length = (fat_fs->bs.total_sectors - fat_fs->bs.fat_sectors - 1) / SECTORS_PER_CLUSTER;
+	fat_fs->data_start = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors;
 	fat_fs->last_clst = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors;
-	// lock_init(&fat_fs->write_lock);
 	
 }
 
