@@ -153,11 +153,11 @@ fat_boot_create (void) {
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
-	fat_fs->fat_length = fat_fs->bs.total_sectors - fat_fs->bs.fat_sectors;
-	// fat_fs->fat_length = fat_fs->bs.fat_sectors * DISK_SECTOR_SIZE / (sizeof(cluster_t)) * SECTORS_PER_CLUSTER;
+	// fat_fs->fat_length = fat_fs->bs.total_sectors - fat_fs->bs.fat_sectors;
+	fat_fs->fat_length = fat_fs->bs.fat_sectors * DISK_SECTOR_SIZE / (sizeof(cluster_t)) * SECTORS_PER_CLUSTER;
 	fat_fs->data_start = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors; // ##### 1
 	// fat_fs->last_clst = fat_fs->bs.fat_sectors / SECTORS_PER_CLUSTER;
-	fat_fs->last_clst = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors;
+	// fat_fs->last_clst = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors;
 	// lock_init(&fat_fs->write_lock);
 	
 }
@@ -203,15 +203,30 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
 	// 	fat_put(clst, 0);
 	// }
 	// fat_put(clst-1, pclst);
-	cluster_t next;
-	while(fat_fs->fat[clst] != EOChain) {
-		next = fat_fs->fat[clst];
-		fat_fs->fat[clst] = 0;
-		clst = next;
-	}
+
+	// cluster_t next;
+	// while(fat_fs->fat[clst] != EOChain) {
+	// 	next = fat_fs->fat[clst];
+	// 	fat_fs->fat[clst] = 0;
+	// 	clst = next;
+	// }
+	// if(pclst != 0)
+	// 	fat_fs->fat[pclst] = EOChain;
 	
-	if(pclst != 0)
-		fat_fs->fat[pclst] = EOChain;
+	/* pcluster가 입력됬으면 pcluster를 chain으로 끝으로 만듬 */
+	if (pclst)
+		fat_put(pclst, EOChain);
+
+	/* clst부터 순회하면서 FAT에서 할당 해제 */
+	cluster_t temp_c = clst;
+	cluster_t next_c;
+	for (; fat_get(temp_c) != EOChain; temp_c = next_c)
+	{
+		next_c = fat_get(temp_c);
+		fat_put(temp_c, 0);
+	}
+
+	fat_put(temp_c, 0);
 }
 
 /* Update a value in the FAT table. */
@@ -243,5 +258,10 @@ cluster_to_sector (cluster_t clst) {
 cluster_t
 sector_to_cluster (disk_sector_t sector) {
 	/* TODO: Your code goes here. */
-	return sector - fat_fs->data_start;
+	cluster_t clst = sector - fat_fs->data_start;
+
+	if (clst < 2)
+		return 0;
+
+	return clst;
 }
