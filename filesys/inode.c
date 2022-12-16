@@ -54,12 +54,12 @@ byte_to_sector(const struct inode *inode, off_t pos)
 	// 	memset(inode->data.length, 0, pos - inode->data.length);
 	// 	return inode->data.start + pos / DISK_SECTOR_SIZE;
 
-	size_t sector_counts = pos / DISK_SECTOR_SIZE;
+	// size_t sector_counts = pos / DISK_SECTOR_SIZE;
 	cluster_t start = sector_to_cluster(inode->data.start);
-	while (sector_counts)
+	while (pos > DISK_SECTOR_SIZE)
 	{
 		start = fat_get(start);
-		sector_counts -= 1;
+		pos -= DISK_SECTOR_SIZE;
 	}
 
 	return cluster_to_sector(start);
@@ -79,7 +79,10 @@ void inode_init(void)
  * writes the new inode to sector SECTOR on the file system
  * disk.
  * Returns true if successful.
- * Returns false if memory or disk allocation fails. */
+ * Returns false if memory or disk allocation fails. 
+ * 데이터의 길이 바이트로 아이노드를 초기화하고 파일 시스템 디스크의 섹터에 새 아이노드를 씁니다. 
+ * 성공하면 true를 반환합니다. 메모리 또는 디스크 할당에 실패하면 false를 반환합니다.
+ * */
 bool inode_create(disk_sector_t sector, off_t length)
 {
 	struct inode_disk *disk_inode = NULL;
@@ -189,8 +192,8 @@ void inode_close(struct inode *inode)
 			// free_map_release (inode->sector, 1);
 			// free_map_release (inode->data.start,
 			// 		bytes_to_sectors (inode->data.length));
-			fat_remove_chain(sector_to_cluster(inode->sector), 0);
 			fat_remove_chain(sector_to_cluster(inode->data.start), 0);
+			fat_remove_chain(sector_to_cluster(inode->sector), 0);
 		}
 
 		free(inode);
