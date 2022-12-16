@@ -177,10 +177,14 @@ fat_create_chain (cluster_t clst) {
 	while (fat_get(i) != 0 && i < fat_fs->fat_length) {
 		++i;
 	}
+	// 2부터 탐색해서 빈 자리 찾는다
+
 	if (i == fat_fs->fat_length) {	// FAT가 가득 찼다면
 		return 0;
 	}
-	fat_put(i, EOChain);	// FAT안의 값 업데이트
+
+	fat_put(i, EOChain);	// FAT안의 값 업데이트, 빈 자리에 EOC 넣는다
+
 	if (clst == 0) {	// 새로운 체인 생성
 		return i;
 	}
