@@ -37,6 +37,7 @@ void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
 void munmap (void *addr);
+// bool chdir (char *dir);
 
 struct lock filesys_lock;
 
@@ -173,6 +174,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_MUNMAP:
 			munmap(f->R.rdi);
 			break;
+		// case SYS_CHDIR:
+		// 	f->R.rax = sys_chdir(f->R.rdi);
+		// 	break;
+
 		default:
 			// exit(-1);
 			// break;
@@ -455,3 +460,10 @@ void
 void munmap (void *addr){
 	do_munmap(addr);
 }
+
+// bool chdir (char *dir) {
+
+
+
+// 	return 0;
+// }

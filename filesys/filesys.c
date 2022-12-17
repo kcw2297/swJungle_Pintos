@@ -54,6 +54,31 @@ void filesys_done(void)
 #endif
 }
 
+
+struct dir* parse_path (char *path_name, char *file_name) {
+	struct dir *dir;
+	if (path_name == NULL || file_name == NULL)
+		goto fail;
+	if (strlen(path_name) == 0)
+		return NULL;
+	/* PATH_NAME의 절대/상대경로에 따른 디렉터리 정보 저장 (구현)*/
+	char *token, *nextToken, *savePtr;
+	token = strtok_r (path_name, "/", &savePtr);
+	nextToken = strtok_r (NULL, "/", &savePtr);
+	while (token != NULL && nextToken != NULL){
+	/* dir에서 token이름의 파일을 검색하여 inode의 정보를 저장*/
+	/* inode가 파일일 경우 NULL 반환 */
+	/* dir의 디렉터리 정보를 메모리에서 해지 */
+	/* inode의 디렉터리 정보를 dir에 저장 */
+	/* token에 검색할 경로 이름 저장 */
+	}
+	/* token의 파일 이름을 file_name에 저장
+	/* dir 정보 반환 */
+	fail :
+		return -1;
+}
+
+
 /* Creates a file named NAME with the given INITIAL_SIZE.
  * Returns true if successful, false otherwise.
  * Fails if a file named NAME already exists,
@@ -90,10 +115,15 @@ filesys_open(const char *name)
 {
 	struct dir *dir = dir_open_root();
 	struct inode *inode = NULL;
+	// char cp_name[15] = *name;
+	printf("===========> file name :: %s \n", name);
+	// printf("===========> dir :: %d \n", dir.inode.sector);
+	// parse_path(cp_name)
 
 	if (dir != NULL)
 		dir_lookup(dir, name, &inode);
 	dir_close(dir);
+	printf("===========>  :: %p \n", dir);
 
 	return file_open(inode);
 }

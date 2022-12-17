@@ -276,7 +276,7 @@ run_actions (char **argv) {
 #endif
 		{NULL, 0, NULL},
 	};
-	printf("===============> before run_actions argv\n");
+	// printf("===============> before run_actions argv\n");
 	while (*argv != NULL) {
 		const struct action *a;
 		int i;
@@ -296,7 +296,7 @@ run_actions (char **argv) {
 		/* Invoke action and advance. */
 		a->function (argv);
 		argv += a->argc;
-	printf("===============> after run_actions argv\n");
+	// printf("===============> after run_actions argv\n");
 	}
 }
 
