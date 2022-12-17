@@ -61,37 +61,33 @@ void filesys_done(void)
 
 struct dir* parse_path (char *path_name, char *file_name) {
 	struct dir *dir;
+	struct inode *inode;
 	if (path_name == NULL || file_name == NULL)
 		goto fail;
 	if (strlen(path_name) == 0)
 		return NULL;
 	/* PATH_NAME의 절대/상대경로에 따른 디렉터리 정보 저장 (구현)*/
-	if (path_name[0] == '/') {
-		//절대
-		dir->inode;}
 	char *token, *nextToken, *savePtr;
 	token = strtok_r (path_name, "/", &savePtr);
 	nextToken = strtok_r (NULL, "/", &savePtr);
 	while (token != NULL && nextToken != NULL){
-	/* dir에서 token이름의 파일을 검색하여 inode의 정보를 저장*/
-	/* inode가 파일일 경우 NULL 반환 */
-	/* dir의 디렉터리 정보를 메모리에서 해지 */
-	/* inode의 디렉터리 정보를 dir에 저장 */
-	/* token에 검색할 경로 이름 저장 */
+		/* dir에서 token이름의 파일을 검색하여 inode의 정보를 저장*/
+		if(!dir_lookup(dir, token, &inode))
+			goto fail;
+		
+		/* inode가 파일일 경우 NULL 반환 */
+		if(!inode_is_dir(inode))
+			return NULL;
+		
+		/* dir의 디렉터리 정보를 메모리에서 해지 */
+		dir_remove(dir, token);
+		/* inode의 디렉터리 정보를 dir에 저장 */
+		dir->inode = inode;
+		/* token에 검색할 경로 이름 저장 */
+		token = nextToken;
+		nextToken = strtok_r(NULL, "/", &savePtr);
+
 	}
-	/* token의 파일 이름을 file_name에 저장
-	   char s[] = "  String to  tokenize. ";
-   char *token, *save_ptr;
-
-   for (token = strtok_r (s, " ", &save_ptr); token != NULL;
-   token = strtok_r (NULL, " ", &save_ptr))
-   printf ("'%s'\n", token);
-
-outputs:
-
-'String'
-'to'
-'tokenize.'
 	/* dir 정보 반환 */
 	return dir;
 	fail :
