@@ -8,6 +8,7 @@
 #include "filesys/directory.h"
 #include "devices/disk.h"
 #include "filesys/fat.h"
+#include "threads/thread.h"
 
 /* The disk that contains the file system. */
 struct disk *filesys_disk;
@@ -31,6 +32,8 @@ void filesys_init(bool format)
 		do_format();
 
 	fat_open();
+	struct thread *initial_thread = thread_current ();
+	initial_thread->cur_dir = dir_open_root();
 #else
 	/* Original FS */
 	free_map_init();

@@ -12,6 +12,7 @@
 #include "filesys/file.h"
 #include "userprog/process.h"
 #include "vm/vm.h"
+#include "include/filesys/inode.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -37,6 +38,7 @@ void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
 void munmap (void *addr);
+bool isdir (int fd);
 // bool chdir (char *dir);
 
 struct lock filesys_lock;
@@ -173,6 +175,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_MUNMAP:
 			munmap(f->R.rdi);
+			break;
+		case SYS_ISDIR:
+			f->R.rax = isdir(f->R.rdi);
 			break;
 		// case SYS_CHDIR:
 		// 	f->R.rax = sys_chdir(f->R.rdi);
@@ -459,6 +464,17 @@ void
 
 void munmap (void *addr){
 	do_munmap(addr);
+}
+
+bool isdir (int fd) {
+	struct file *file = fd_to_file(fd);
+	// struct file *file = (struct file*)malloc(sizeof(struct file));
+	// memcpy(file, tfile, sizeof(struct file));
+	// tfile.
+	if(file){
+		return inode_is_dir(file->inode);
+	}
+	return false;
 }
 
 // bool chdir (char *dir) {

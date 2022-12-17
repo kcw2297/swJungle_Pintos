@@ -120,7 +120,7 @@ thread_init (void) {
 	init_thread (initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
 	initial_thread->tid = allocate_tid ();
-	
+	initial_thread->cur_dir = NULL;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -198,7 +198,13 @@ thread_create (const char *name, int priority,
 	/* Initialize thread. */
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
-
+	if(thread_current()->cur_dir != NULL){
+		// ##### 1
+		/* 자식 스레드의 작업 디렉터리를 부모 스레드의 작업 디렉터리로
+		 디렉터리를 다시 오픈하여 설정 */
+		// t->cur_dir = thread_current()->cur_dir;
+		t->cur_dir = dir_reopen(thread_current()->cur_dir);
+	}
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	t->tf.rip = (uintptr_t) kernel_thread;

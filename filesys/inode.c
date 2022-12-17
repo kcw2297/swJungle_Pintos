@@ -383,3 +383,17 @@ off_t inode_length(const struct inode *inode)
 {
 	return inode->data.length;
 }
+
+bool inode_is_dir (const struct inode *inode) {
+	bool result;
+	/* inode_disk 자료구조를 메모리에 할당 */
+	/* in-memory inode의 on-disk inode를 읽어 inode_disk에 저장 */
+	/* on-disk inode의 is_dir을 result에 저장하여 반환 */
+	struct inode_disk *copy_inode_disk = (struct inode_disk*)malloc(sizeof(struct inode_disk));
+	// copy_inode_disk = &inode->data;
+	memcpy(copy_inode_disk, &inode->data, sizeof(struct inode_disk));
+	result = copy_inode_disk->is_dir;
+	free(copy_inode_disk);
+	
+	return result;
+}
