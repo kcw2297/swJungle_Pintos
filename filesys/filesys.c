@@ -10,6 +10,7 @@
 #include "filesys/fat.h"
 #include "threads/thread.h"
 
+
 /* The disk that contains the file system. */
 struct disk *filesys_disk;
 
@@ -65,6 +66,9 @@ struct dir* parse_path (char *path_name, char *file_name) {
 	if (strlen(path_name) == 0)
 		return NULL;
 	/* PATH_NAME의 절대/상대경로에 따른 디렉터리 정보 저장 (구현)*/
+	if (path_name[0] == '/') {
+		//절대
+		dir->inode;}
 	char *token, *nextToken, *savePtr;
 	token = strtok_r (path_name, "/", &savePtr);
 	nextToken = strtok_r (NULL, "/", &savePtr);
@@ -76,11 +80,23 @@ struct dir* parse_path (char *path_name, char *file_name) {
 	/* token에 검색할 경로 이름 저장 */
 	}
 	/* token의 파일 이름을 file_name에 저장
+	   char s[] = "  String to  tokenize. ";
+   char *token, *save_ptr;
+
+   for (token = strtok_r (s, " ", &save_ptr); token != NULL;
+   token = strtok_r (NULL, " ", &save_ptr))
+   printf ("'%s'\n", token);
+
+outputs:
+
+'String'
+'to'
+'tokenize.'
 	/* dir 정보 반환 */
+	return dir;
 	fail :
 		return -1;
 }
-
 
 /* Creates a file named NAME with the given INITIAL_SIZE.
  * Returns true if successful, false otherwise.
