@@ -217,6 +217,13 @@ create (const char *file, unsigned initial_size) {
         return filesys_create(file,initial_size); // ASSERT, dir_add (name!=NULL)
     else
         exit(-1);
+	/*
+	lock_acquire(&filesys_lock);
+	bool succ = filesys_create(file, initial_size);
+	lock_release(&filesys_lock);
+
+	return succ;
+	*/
 }
 
 bool

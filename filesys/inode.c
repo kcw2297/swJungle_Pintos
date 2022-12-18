@@ -114,12 +114,11 @@ bool inode_create(disk_sector_t sector, off_t length, uint32_t is_dir)
 			if (sectors > 0)
 			{
 				static char zeros[DISK_SECTOR_SIZE];
-				// ##### 1
-				// cluster_t target = start_clst;
+				/* cluster_t target = start_clst; */
 				disk_sector_t w_sector;
-				// size_t i;
-				// for (i = 0; i < sectors; i++)
-				// 	disk_write(filesys_disk, disk_inode->start + i, zeros);
+				/* size_t i; */
+				
+				/* while(sectors > 1) */
 				while (sectors > 0)
 				{
 					w_sector = cluster_to_sector(start_clst);
@@ -153,7 +152,7 @@ inode_open(disk_sector_t sector)
 		inode = list_entry(e, struct inode, elem);
 		if (inode->sector == sector)
 		{
-			inode_reopen(inode);
+			inode_reopen(inode); // inode cnt증가
 			return inode;
 		}
 	}
@@ -386,14 +385,12 @@ off_t inode_length(const struct inode *inode)
 
 bool inode_is_dir (const struct inode *inode) {
 	bool result;
-	/* inode_disk 자료구조를 메모리에 할당 */
-	/* in-memory inode의 on-disk inode를 읽어 inode_disk에 저장 */
-	/* on-disk inode의 is_dir을 result에 저장하여 반환 */
 	struct inode_disk *copy_inode_disk = (struct inode_disk*)malloc(sizeof(struct inode_disk));
 	// copy_inode_disk = &inode->data;
 	memcpy(copy_inode_disk, &inode->data, sizeof(struct inode_disk));
 	result = copy_inode_disk->is_dir;
 	free(copy_inode_disk);
-	
 	return result;
+	// by 현진
+	/* return inode->data.is_dir; */
 }

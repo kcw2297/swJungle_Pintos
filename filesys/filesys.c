@@ -60,16 +60,30 @@ void filesys_done(void)
 
 
 struct dir* parse_path (char *path_name, char *file_name) {
+	struct thread *curr = thread_current();
 	struct dir *dir;
 	struct inode *inode;
-	if (path_name == NULL || file_name == NULL)
-		goto fail;
-	if (strlen(path_name) == 0)
+	
+	char *path = (char *)malloc(strlen(path_name) + 1);
+	strlcpy(path, path_name, strlen(path_name) + 1); 
+
+	if (path == NULL || file_name == NULL)
 		return NULL;
+
+	if (strlen(path) == 0)
+		return NULL;
+	
+	if (path[0] == '/')
+		dir = dir_open_root();
+	else
+		dir = dir_reopen(curr->curr_dir);
+	
+
 	/* PATH_NAME의 절대/상대경로에 따른 디렉터리 정보 저장 (구현)*/
 	char *token, *nextToken, *savePtr;
-	token = strtok_r (path_name, "/", &savePtr);
+	token = strtok_r (path, "/", &savePtr);
 	nextToken = strtok_r (NULL, "/", &savePtr);
+
 	while (token != NULL && nextToken != NULL){
 		/* dir에서 token이름의 파일을 검색하여 inode의 정보를 저장*/
 		if(!dir_lookup(dir, token, &inode))
@@ -77,44 +91,67 @@ struct dir* parse_path (char *path_name, char *file_name) {
 		
 		/* inode가 파일일 경우 NULL 반환 */
 		if(!inode_is_dir(inode))
-			return NULL;
+			// return NULL;
+			goto fail;
 		
 		/* dir의 디렉터리 정보를 메모리에서 해지 */
-		dir_remove(dir, token);
+	
+		dir_close(dir);
+
 		/* inode의 디렉터리 정보를 dir에 저장 */
-		dir->inode = inode;
+		dir = dir_open(inode);
+
 		/* token에 검색할 경로 이름 저장 */
 		token = nextToken;
 		nextToken = strtok_r(NULL, "/", &savePtr);
 
 	}
+	
+	if (token == NULL)
+		strlcpy(file_name, ".", 2); // '/'인 경우 .이다
+	else
+		strlcpy(file_name, token, strlen(token) + 1);
+	
 	/* dir 정보 반환 */
 	return dir;
+
 	fail :
-		return -1;
+		dir_close(dir);
+		if (inode)
+			inode_close(inode);
+
+		return NULL;
+	
 }
 
 /* Creates a file named NAME with the given INITIAL_SIZE.
  * Returns true if successful, false otherwise.
  * Fails if a file named NAME already exists,
  * or if internal memory allocation fails. */
-/* 지정된 INITIAL_SIZE를 사용하여 NAME이라는 이름의 파일을 만든다.
-   성공하면 true를 반환하고, 그렇지 않으면 false를 반환
-   이름이 NAME인 파일이 이미 있거나 내부 메모리 할당이 실패한 경우 실패 */
-bool filesys_create(const char *name, off_t initial_size)
+bool filesys_create(const char *name, off_t initial_size) // name: file_path
 {
+	struct thread *curr = thread_current();
+	char file_name[NAME_MAX + 1];
+
+	char* copy_name = (char*)malloc(strlen(name)+1);
+	if (copy_name == NULL)
+		return false;
+	strlcpy(copy_name, name, strlen(name)+1);
 
 	cluster_t inode_cluster = fat_create_chain(0);
 	disk_sector_t inode_sector = cluster_to_sector(inode_cluster);
+	
+	// struct dir *dir = dir_open_root();
+	struct dir* dir = parse_path(copy_name, file_name);
 
-	struct dir *dir = dir_open_root();
-	bool success = (dir != NULL && inode_create(inode_sector, initial_size, INODE_FILE) && dir_add(dir, name, inode_sector));
-					// && free_map_allocate (1, &inode_sector)
-					// && fat_create_chain(0)
+	bool success = (dir != NULL && inode_create(inode_sector, initial_size, INODE_FILE) 
+				&& dir_add(dir, file_name, inode_sector));
+					
 	if (!success && inode_sector != 0)
 		// free_map_release (inode_sector, 1);
 		fat_remove_chain(inode_cluster, 0);
 	dir_close(dir);
+	free(copy_name);
 	return success;
 }
 
@@ -128,17 +165,21 @@ bool filesys_create(const char *name, off_t initial_size)
 struct file *
 filesys_open(const char *name)
 {
-	struct dir *dir = dir_open_root();
+	// struct dir *dir = dir_open_root();
+	char file_name[NAME_MAX + 1];
+	struct dir* dir = parse_path(name, file_name);
+
 	struct inode *inode = NULL;
 	// char cp_name[15] = *name;
-	printf("===========> file name :: %s \n", name);
+	// printf("===========> file name :: %s \n", name);
 	// printf("===========> dir :: %d \n", dir.inode.sector);
 	// parse_path(cp_name)
 
 	if (dir != NULL)
-		dir_lookup(dir, name, &inode);
+		dir_lookup(dir, file_name, &inode);
 	dir_close(dir);
-	printf("===========>  :: %p \n", dir);
+	// printf("===========>  :: %p \n", dir);
+
 
 	return file_open(inode);
 }
