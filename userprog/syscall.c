@@ -13,6 +13,7 @@
 #include "userprog/process.h"
 #include "vm/vm.h"
 #include "include/filesys/inode.h"
+#include "include/filesys/directory.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -39,7 +40,10 @@ unsigned tell (int fd);
 void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
 void munmap (void *addr);
 bool isdir (int fd);
-// bool chdir (char *dir);
+bool chdir (char *path_name);
+bool mkdir (char *dir);
+bool readdir (int fd, char *name);
+int inumber(int fd);
 
 struct lock filesys_lock;
 
@@ -179,10 +183,20 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_ISDIR:
 			f->R.rax = isdir(f->R.rdi);
 			break;
-		// case SYS_CHDIR:
-		// 	f->R.rax = sys_chdir(f->R.rdi);
-		// 	break;
-
+		case SYS_CHDIR:
+			check_address(f->R.rdi);
+			f->R.rax = chdir(f->R.rdi);
+			break;
+		case SYS_MKDIR:
+			check_address(f->R.rdi);
+			f->R.rax = mkdir(f->R.rdi);
+			break;
+		case SYS_READDIR:
+			f->R.rax = readdir(f->R.rdi, f->R.rsi);
+			break;
+		case SYS_INUMBER:
+			f->R.rax = inumber(f->R.rdi);
+			break;
 		default:
 			// exit(-1);
 			// break;
@@ -231,7 +245,13 @@ remove (const char *file) {
 	check_address(file);
 	/* 파일 이름에 해당하는 파일을 제거 */
 	/* 파일 제거 성공 시 true 반환, 실패 시 false 반환 */
-	return filesys_remove(file);
+	// return filesys_remove(file);
+	bool result = false;
+	lock_acquire(&filesys_lock);
+	result = filesys_remove(file);
+	lock_release(&filesys_lock);
+
+	return result;
 }
 
 
@@ -484,9 +504,90 @@ bool isdir (int fd) {
 	return false;
 }
 
-// bool chdir (char *dir) {
+bool chdir (char *path_name) {
+	
+	struct thread *curr = thread_current();
+	struct dir *dir;
+	struct inode *inode;
+
+	char *path = (char *)malloc(strlen(path_name) + 1);
+	strlcpy(path, path_name, strlen(path_name) + 1);
+
+	if (path == NULL)
+		return NULL;
+
+	if (strlen(path) == 0)
+		return NULL;
 
 
+	if (path[0] == '/')
+		dir = dir_open_root();
+	else
+		dir = dir_reopen(curr->cur_dir);
 
-// 	return 0;
-// }
+	/* PATH_NAME의 절대/상대경로에 따른 디렉터리 정보 저장 (구현)*/
+	char *token, *nextToken, *savePtr;
+	token = strtok_r(path, "/", &savePtr);
+	// nextToken = strtok_r(NULL, "/", &savePtr);
+
+	while (token != NULL )
+	{
+		/* dir에서 token이름의 파일을 검색하여 inode의 정보를 저장*/
+		if (!dir_lookup(dir, token, &inode))
+			goto fail;
+
+		/* inode가 파일일 경우 NULL 반환 */
+		if (!inode_is_dir(inode))
+			// return NULL;
+			goto fail;
+
+		/* dir의 디렉터리 정보를 메모리에서 해지 */
+		dir_close(dir);
+
+		/* inode의 디렉터리 정보를 dir에 저장 */
+		dir = dir_open(inode);
+
+		/* token에 검색할 경로 이름 저장 */
+		token = strtok_r(NULL, "/", &savePtr);
+	}
+	dir_close(curr->cur_dir);
+	curr->cur_dir = dir;
+	free(path);
+
+	/* dir 정보 반환 */
+	return true;
+
+fail:
+	dir_close(dir);
+	if (inode)
+		inode_close(inode);
+	free(path);
+
+	return false;
+}
+
+
+bool mkdir (char *dir){
+	return filesys_create_dir(dir);
+}
+
+bool readdir (int fd, char *name){
+	struct file * file = fd_to_file(fd);
+	if(!inode_is_dir(file->inode))
+		return false;
+	// struct dir *dir = dir_open(file->inode);
+	struct dir *dir = file;
+
+	bool result = false;
+	result = dir_readdir(dir, name);
+		
+	// dir_close(dir);
+	return result;
+}
+
+int inumber(int fd){
+	struct file * file = fd_to_file(fd);
+	if(file == NULL)
+		return false;
+	return inode_get_inumber(file->inode);
+}
