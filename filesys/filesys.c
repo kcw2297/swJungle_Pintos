@@ -94,7 +94,7 @@ filesys_open(const char *name)
 	if (dir != NULL)
 		dir_lookup(dir, name, &inode);
 	dir_close(dir);
-
+	
 	return file_open(inode);
 }
 
@@ -129,4 +129,16 @@ do_format(void)
 #endif
 
 	printf("done.\n");
+}
+
+bool filesys_create_dir (const char *name) {
+
+	char* cp_name = (char *)malloc(sizeof(strlen(name)+1));
+	memcpy(cp_name, name, sizeof(strlen(name)+1));
+	printf("=====> filename: %s\n", cp_name);
+	disk_sector_t sector = cluster_to_sector(fat_create_chain(0));
+	dir_create(sector, 1);
+	struct dir *root_dir = dir_open_root();
+	bool success = dir_add (root_dir, name, sector);
+	return success;
 }
